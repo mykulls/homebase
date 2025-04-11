@@ -10,7 +10,7 @@ const createWindow = () => {
     transparent: true,
     alwaysOnTop: true,
     webPreferences: {
-      preload: join(__dirname, "../preload/preload.ts"), // compiled path
+      preload: join(__dirname, "../preload/preload.js"), // compiled path
       contextIsolation: true,
       nodeIntegration: false,
     },
@@ -25,6 +25,8 @@ const createWindow = () => {
   ipcMain.on("set-ignore-mouse-events", (event, ignore) => {
     win.setIgnoreMouseEvents(ignore, { forward: true });
   });
+
+  // win.webContents.openDevTools();
 };
 
 app.whenReady().then(() => {
