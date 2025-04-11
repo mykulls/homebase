@@ -1,5 +1,7 @@
 import React, { useEffect } from "react";
-import Test from "./test";
+
+import { Test, DraggableWrapper } from "./components";
+import "./index.css";
 
 const App = () => {
   useEffect(() => {
@@ -23,7 +25,9 @@ const App = () => {
 
   return (
     <div>
-      <Test onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} />
+      <DraggableWrapper>
+        <Test onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} />
+      </DraggableWrapper>
     </div>
   );
 };
