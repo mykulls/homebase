@@ -25,8 +25,8 @@ const App = () => {
 
   return (
     <div>
-      <DraggableWrapper>
-        <Test onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave} />
+      <DraggableWrapper onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+        <Test />
       </DraggableWrapper>
     </div>
   );

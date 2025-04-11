@@ -1,13 +1,10 @@
 import React from "react";
 
-interface TestProps {
-  onMouseEnter: () => void;
-  onMouseLeave: () => void;
-}
+interface TestProps {}
 
-function Test({ onMouseEnter, onMouseLeave }: TestProps) {
+function Test() {
   return (
-    <div onMouseEnter={onMouseEnter} onMouseLeave={onMouseLeave} className="clickable">
+    <div className="clickable">
       <button
         className="sign-in"
         onClick={() => {

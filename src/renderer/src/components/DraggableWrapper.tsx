@@ -2,10 +2,17 @@ import React, { useState, useRef } from "react";
 
 interface DraggableWrapperProps {
   children: React.ReactNode;
+  onMouseEnter: () => void;
+  onMouseLeave: () => void;
   defaultPosition?: { x: number; y: number };
 }
 
-function DraggableWrapper({ children, defaultPosition = { x: 100, y: 100 } }: DraggableWrapperProps) {
+function DraggableWrapper({
+  children,
+  onMouseEnter,
+  onMouseLeave,
+  defaultPosition = { x: 100, y: 100 },
+}: DraggableWrapperProps) {
   const [position, setPosition] = useState(defaultPosition);
   const [dragging, setDragging] = useState(false);
   const offsetRef = useRef({ x: 0, y: 0 });
@@ -35,15 +42,18 @@ function DraggableWrapper({ children, defaultPosition = { x: 100, y: 100 } }: Dr
     <div
       className="draggable"
       style={{
+        display: "flex",
         position: "absolute",
         left: position.x,
         top: position.y,
-        cursor: dragging ? "grabbing" : "grab",
         userSelect: "none",
+        cursor: dragging ? "grabbing" : "grab",
       }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
     >
       {children}
     </div>

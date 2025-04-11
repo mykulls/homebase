@@ -28,6 +28,6 @@ body {
   cursor: pointer;
 }
 
-.draggable {
+/* .draggable {
   -webkit-app-region: drag;
-}
+} */
