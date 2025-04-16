@@ -41,6 +41,15 @@ function YouTubePlayerWithControls() {
         height: DEFAULT_HEIGHT.toString(),
         width: DEFAULT_WIDTH.toString(),
         videoId,
+        playerVars: {
+          controls: 0, // Hide YouTube controls
+          modestbranding: 1, // Reduce YouTube branding
+          rel: 0, // Don't show related videos after playback
+          showinfo: 0, // Hide video info like title and uploader
+          iv_load_policy: 3, // Disable annotations
+          fs: 0, // Disable fullscreen button
+          autohide: 1, // Hide controls after a few seconds
+        },
         events: {
           onReady: () => console.log("Player ready"),
         },
