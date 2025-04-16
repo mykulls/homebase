@@ -18,6 +18,13 @@ function DraggableWrapper({
   const offsetRef = useRef({ x: 0, y: 0 });
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLElement;
+    const tag = target.tagName.toLowerCase();
+
+    // Don't start dragging if clicked on input elements
+    const isFormElement = ["input", "textarea", "button", "select"].includes(tag);
+    if (isFormElement) return;
+
     const rect = e.currentTarget.getBoundingClientRect();
     offsetRef.current = {
       x: e.clientX - rect.left,

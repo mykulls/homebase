@@ -1,6 +1,8 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import { join } from "path";
 
+const devMode = true;
+
 const createWindow = () => {
   const win = new BrowserWindow({
     width: 2560,
@@ -13,20 +15,23 @@ const createWindow = () => {
       preload: join(__dirname, "../preload/preload.js"), // compiled path
       contextIsolation: true,
       nodeIntegration: false,
+      allowRunningInsecureContent: true,
     },
   });
 
   win.loadFile(join(__dirname, "../renderer/index.html"));
 
-  // Ignore all mouse events initially
-  win.setIgnoreMouseEvents(true, { forward: true });
+  if (devMode) {
+    win.webContents.openDevTools();
+  } else {
+    // Ignore all mouse events initially
+    win.setIgnoreMouseEvents(true, { forward: true });
 
-  // Listen to toggle when mouse is over a clickable area
-  ipcMain.on("set-ignore-mouse-events", (event, ignore) => {
-    win.setIgnoreMouseEvents(ignore, { forward: true });
-  });
-
-  // win.webContents.openDevTools();
+    // Listen to toggle when mouse is over a clickable area
+    ipcMain.on("set-ignore-mouse-events", (event, ignore) => {
+      win.setIgnoreMouseEvents(ignore, { forward: true });
+    });
+  }
 };
 
 app.whenReady().then(() => {

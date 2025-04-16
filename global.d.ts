@@ -5,5 +5,7 @@ declare global {
     electron?: {
       setIgnoreMouseEvents: (ignore: boolean) => void;
     };
+    YT: typeof YT;
+    onYouTubeIframeAPIReady: () => void;
   }
 }
