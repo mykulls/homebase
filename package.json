@@ -1,0 +1,34 @@
+{
+  "name": "homebase",
+  "version": "1.0.0",
+  "description": "",
+  "main": "./out/main/index.js",
+  "scripts": {
+    "start": "electron-vite preview",
+    "dev": "electron-vite dev",
+    "prebuild": "electron-vite build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mykulls/homebase.git"
+  },
+  "author": "Michael Shi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mykulls/homebase/issues"
+  },
+  "homepage": "https://github.com/mykulls/homebase#readme",
+  "devDependencies": {
+    "@types/react": "^19.1.0",
+    "@types/react-dom": "^19.1.2",
+    "@types/youtube": "^0.1.0",
+    "electron": "^35.1.5",
+    "electron-vite": "^3.1.0",
+    "typescript": "^5.8.3"
+  },
+  "dependencies": {
+    "path": "^0.12.7",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0"
+  }
+}
