@@ -5,8 +5,8 @@ body {
 }
 
 .clickable {
-  width: 600px;
-  height: 400px;
+  width: 420px;
+  height: 360px;
   display: flex;
   justify-content: center;
   align-items: center;
