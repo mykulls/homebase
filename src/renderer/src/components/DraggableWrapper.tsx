@@ -1,27 +1,41 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 
 interface DraggableWrapperProps {
   children: React.ReactNode;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
-  defaultPosition?: { x: number; y: number };
+  position: { x: number; y: number };
+  onPositionChange: (position: { x: number; y: number }) => void;
+  onDragStart: () => void;
+  onDragEnd: () => void;
+  onDimensionsChange: (dimensions: { width: number; height: number }) => void; // New prop
 }
 
 function DraggableWrapper({
   children,
   onMouseEnter,
   onMouseLeave,
-  defaultPosition = { x: 100, y: 100 },
+  position,
+  onPositionChange,
+  onDragStart,
+  onDragEnd,
+  onDimensionsChange, // New prop
 }: DraggableWrapperProps) {
-  const [position, setPosition] = useState(defaultPosition);
   const [dragging, setDragging] = useState(false);
   const offsetRef = useRef({ x: 0, y: 0 });
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (wrapperRef.current) {
+      const rect = wrapperRef.current.getBoundingClientRect();
+      onDimensionsChange({ width: rect.width, height: rect.height }); // Pass dimensions upwards
+    }
+  }, [onDimensionsChange]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
     const tag = target.tagName.toLowerCase();
 
-    // Don't start dragging if clicked on input elements
     const isFormElement = ["input", "textarea", "button", "select"].includes(tag);
     if (isFormElement) return;
 
@@ -31,22 +45,29 @@ function DraggableWrapper({
       y: e.clientY - rect.top,
     };
     setDragging(true);
+    onDragStart(); // Notify SnapContainer that dragging has started
     e.stopPropagation();
     e.preventDefault();
   };
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!dragging) return;
-    setPosition({
+    onPositionChange({
       x: e.clientX - offsetRef.current.x,
       y: e.clientY - offsetRef.current.y,
     });
   };
 
-  const handleMouseUp = () => setDragging(false);
+  const handleMouseUp = () => {
+    if (dragging) {
+      setDragging(false);
+      onDragEnd(); // Notify SnapContainer that dragging has ended
+    }
+  };
 
   return (
     <div
+      ref={wrapperRef} // Attach ref to the wrapper
       className="draggable"
       style={{
         display: "flex",
@@ -55,6 +76,8 @@ function DraggableWrapper({
         top: position.y,
         userSelect: "none",
         cursor: dragging ? "grabbing" : "grab",
+        opacity: dragging ? 0.5 : 1, // Transparent view while dragging
+        transition: dragging ? "none" : "all 0.2s ease-out", // Smooth snapping
       }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
