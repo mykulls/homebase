@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Test, DraggableWrapper, SnapContainer } from "./components";
+import { Test, DraggableWrapper, SnapContainer, ExpandCollapseButton } from "./components";
 import "./index.css";
 
 const App = () => {
@@ -28,25 +28,16 @@ const App = () => {
     <div>
       {/* Expand/Collapse Button */}
       <DraggableWrapper
-        position={{ x: 20, y: window.innerHeight - 60 }} // Bottom-left corner
+        position={{ x: -30, y: window.innerHeight - 60 }} // Bottom-left corner
+        onPositionChange={() => {}} // No-op since it's not draggable
+        onDragStart={() => {}}
+        onDragEnd={() => {}}
+        onDimensionsChange={() => {}}
         draggable={false} // Make the button non-draggable
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
-        <button
-          onClick={toggleCollapse}
-          style={{
-            width: "100px",
-            height: "40px",
-            backgroundColor: "#007bff",
-            color: "#fff",
-            border: "none",
-            borderRadius: "8px",
-            cursor: "pointer",
-          }}
-        >
-          {collapsed ? "Expand" : "Collapse"}
-        </button>
+        <ExpandCollapseButton collapsed={collapsed} toggleCollapse={toggleCollapse} />
       </DraggableWrapper>
 
       {/* Other Draggable Windows */}
@@ -54,6 +45,7 @@ const App = () => {
         style={{
           opacity: collapsed ? 0 : 1, // Animate opacity
           transition: "opacity 0.2s ease", // Smooth transition
+          pointerEvents: collapsed ? "none" : "auto", // Disable interaction when collapsed
         }}
       >
         <SnapContainer>
@@ -64,7 +56,7 @@ const App = () => {
               onPositionChange={onPositionChange}
               onDragStart={onDragStart}
               onDragEnd={onDragEnd}
-              onDimensionsChange={onDimensionsChange}
+              onDimensionsChange={onDimensionsChange} // Pass dimensions handler
               onMouseEnter={handleMouseEnter}
               onMouseLeave={handleMouseLeave}
             >
