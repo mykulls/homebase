@@ -1,12 +1,14 @@
 import React from "react";
 import YouTubePlayerWithControls from "./YoutubePlayer";
 
-interface TestProps {}
+interface TestProps {
+  audioOnly?: boolean;
+}
 
-function Test() {
+function Test({ audioOnly }: TestProps) {
   return (
     <div className="clickable">
-      <YouTubePlayerWithControls />
+      <YouTubePlayerWithControls audioOnly={audioOnly} />
     </div>
   );
 }

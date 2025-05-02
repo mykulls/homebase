@@ -1,30 +1,31 @@
-.expand-collapse-container {
+.edit-button-container {
   display: flex;
   flex-direction: row;
   align-items: center;
+  /* translate: -400px; */ /* devMode */
 }
 
-.expand-collapse-container:hover .expand-collapse-button {
+.edit-button-container:hover .edit-button {
   z-index: 1;
-  transform: translateX(30px); /* Move children right on hover */
+  transform: translateX(-30px); /* Move children right on hover */
   transition: transform 0.3s ease; /* Smooth slide-in animation */
 }
 
-.expand-collapse-container:hover .expand-collapse-caret {
+.edit-button-container:hover .edit-caret {
   display: none;
 }
 
-.expand-collapse-container:hover .expand-collapse-icon {
+.edit-button-container:hover .edit-icon {
   display: flex;
 }
 
-.expand-collapse-button {
+.edit-button {
   width: 50px;
   height: 50px;
-  background-color: #007bff; /* Highlight on hover */
+  background-color: #007bff; /* Button color */
   border: none;
-  color: #fff; /* Change icon color */
-  border-radius: 0 16px 16px 0;
+  color: #fff; /* Icon color */
+  border-radius: 16px 0 0 16px; /* Rounded corners on the left */
   cursor: pointer;
   display: flex;
   justify-content: center;
@@ -32,17 +33,17 @@
   transition: all 0.2s ease; /* Smooth hover effect */
 }
 
-.expand-collapse-icon {
+.edit-icon {
   display: none;
   font-size: 24px;
   transition: all 0.2s ease;
 }
 
-.expand-collapse-caret {
+.edit-caret {
   display: flex;
   transition: all 0.2s ease;
-  rotate: 90deg;
-  translate: 10px;
+  rotate: -90deg;
+  translate: -10px;
   font-size: 16px;
   font-weight: 600;
 }

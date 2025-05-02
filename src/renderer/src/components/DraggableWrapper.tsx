@@ -10,13 +10,15 @@ interface DraggableWrapperProps {
   onPositionChange?: (position: { x: number; y: number }) => void;
   onDragStart?: () => void;
   onDragEnd?: () => void;
-  onDimensionsChange?: (dimensions: { width: number; height: number }) => void;
+  onDimensionsChange?: (final: boolean, dimensions: { width: number; height: number }) => void;
+  dimensions?: { width: number; height: number };
+  isEditMode?: boolean; // Add isEditMode to control the resizable corner
 }
 
 function DraggableWrapper({
   children,
   position,
-  draggable = true, // Default to true
+  draggable = true,
   collapsed = false,
   onMouseEnter = () => {},
   onMouseLeave = () => {},
@@ -24,8 +26,12 @@ function DraggableWrapper({
   onDragStart = () => {},
   onDragEnd = () => {},
   onDimensionsChange = () => {},
+  dimensions = { width: 0, height: 0 },
+  isEditMode = false, // Default to false
 }: DraggableWrapperProps) {
   const [dragging, setDragging] = useState(false);
+  const [resizing, setResizing] = useState(false); // Track resizing state
+  const defaultDim = dimensions;
   const offsetRef = useRef({ x: 0, y: 0 });
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -40,11 +46,37 @@ function DraggableWrapper({
   }
 
   useEffect(() => {
-    if (draggable && wrapperRef.current) {
+    const handleResize = (e: MouseEvent) => {
+      if (!resizing || !wrapperRef.current) return;
+
       const rect = wrapperRef.current.getBoundingClientRect();
-      onDimensionsChange({ width: rect.width, height: rect.height }); // Pass dimensions upwards
+      const newHeight = Math.max(100, e.clientY - rect.top); // Minimum height of 100px
+
+      onDimensionsChange(false, { width: rect.width, height: newHeight });
+    };
+
+    const handleResizeEnd = () => {
+      if (resizing) {
+        setResizing(false);
+
+        // Snap height to the closest option (half height or full height)
+        if (wrapperRef.current) {
+          const rect = wrapperRef.current.getBoundingClientRect();
+          onDimensionsChange(true, { width: rect.width, height: rect.height });
+        }
+      }
+    };
+
+    if (resizing) {
+      document.addEventListener("mousemove", handleResize);
+      document.addEventListener("mouseup", handleResizeEnd);
     }
-  }, [onDimensionsChange]);
+
+    return () => {
+      document.removeEventListener("mousemove", handleResize);
+      document.removeEventListener("mouseup", handleResizeEnd);
+    };
+  }, [resizing, onDimensionsChange]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!draggable) return; // Prevent dragging if not draggable
@@ -66,23 +98,10 @@ function DraggableWrapper({
     e.preventDefault();
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!draggable) return; // Prevent dragging if not draggable
-
-    if (!dragging || !draggable) return;
-    onPositionChange({
-      x: e.clientX - offsetRef.current.x,
-      y: e.clientY - offsetRef.current.y,
-    });
-  };
-
-  const handleMouseUp = () => {
-    if (!draggable) return; // Prevent dragging if not draggable
-
-    if (dragging) {
-      setDragging(false);
-      onDragEnd(); // Notify SnapContainer that dragging has ended
-    }
+  const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
+    setResizing(true);
+    e.stopPropagation();
+    e.preventDefault();
   };
 
   return (
@@ -94,18 +113,49 @@ function DraggableWrapper({
         position: "absolute",
         left: position.x,
         top: position.y,
+        width: `${dimensions.width}px`, // Use dynamic width
+        height: `${dimensions.height}px`, // Use dynamic height
         userSelect: "none",
-        cursor: draggable && dragging ? "grabbing" : draggable ? "grab" : "default",
-        opacity: dragging ? 0.5 : 1, // Transparent view while dragging
-        transition: dragging ? "none" : "all 0.2s ease-out", // Smooth snapping
+        cursor: dragging ? "grabbing" : draggable ? "grab" : "default",
+        opacity: dragging || resizing ? 0.5 : 1, // Add transparency while dragging or resizing
+        transition: dragging || resizing ? "none" : "all 0.2s ease-out", // Smooth snapping
       }}
       onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
+      onMouseMove={(e) => {
+        if (dragging) {
+          onPositionChange({
+            x: e.clientX - offsetRef.current.x,
+            y: e.clientY - offsetRef.current.y,
+          });
+        }
+      }}
+      onMouseUp={() => {
+        if (dragging) {
+          setDragging(false);
+          onDragEnd(); // Notify SnapContainer that dragging has ended
+        }
+      }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
       {children}
+
+      {isEditMode && draggable && !collapsed && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: -3,
+            right: -3,
+            width: "16px",
+            height: "16px",
+            cursor: "nwse-resize",
+            borderRight: "6px solid grey",
+            borderBottom: "6px solid grey",
+            borderRadius: "3px",
+          }}
+          onMouseDown={handleResizeStart}
+        />
+      )}
     </div>
   );
 }

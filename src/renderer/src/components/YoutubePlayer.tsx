@@ -1,6 +1,10 @@
 import React, { useState, useRef, useEffect, FormEvent } from "react";
 
-function YouTubePlayerWithControls() {
+interface YouTubePlayerWithControlsProps {
+  audioOnly?: boolean;
+}
+
+function YouTubePlayerWithControls({ audioOnly = false }: YouTubePlayerWithControlsProps) {
   const [videoId, setVideoId] = useState<string>("");
   const [input, setInput] = useState<string>("");
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -77,6 +81,8 @@ function YouTubePlayerWithControls() {
     }
   };
 
+  console.log(audioOnly);
+
   return (
     <div style={{ padding: "16px", maxWidth: "600px", margin: "0 auto" }}>
       <form onSubmit={handleSubmit} style={{ marginBottom: "16px", display: "flex", gap: "8px" }}>
@@ -96,6 +102,8 @@ function YouTubePlayerWithControls() {
         <>
           <div
             style={{
+              display: audioOnly ? "none" : "flex",
+              opacity: audioOnly ? 0 : 1,
               position: "relative",
               width: `${DEFAULT_WIDTH}px`,
               height: `${DEFAULT_HEIGHT}px`,

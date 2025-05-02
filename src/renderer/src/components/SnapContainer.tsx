@@ -6,15 +6,19 @@ interface SnapContainerProps {
     onPositionChange: (position: { x: number; y: number }) => void;
     onDragStart: () => void;
     onDragEnd: () => void;
-    onDimensionsChange: (dimensions: { width: number; height: number }) => void;
+    onDimensionsChange: (final: boolean, dimensions: { width: number; height: number }) => void;
+    dimensions: { width: number; height: number };
+    widgetSize: number;
   }) => ReactNode;
 }
 
 function SnapContainer({ children }: SnapContainerProps) {
   const [position, setPosition] = useState({ x: 20, y: 20 });
   const [dragging, setDragging] = useState(false);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 }); // Store dimensions
+  const defaultDim = { width: 420, height: 360 };
+  const [dimensions, setDimensions] = useState(defaultDim); // Store dimensions
   const [nearestCorner, setNearestCorner] = useState<{ x: number; y: number } | null>(null);
+  const [widgetSize, setWidgetSize] = useState(0);
 
   const snapToCorner = (pos: { x: number; y: number }) => {
     const { innerWidth, innerHeight } = window;
@@ -66,8 +70,17 @@ function SnapContainer({ children }: SnapContainerProps) {
     setDragging(false);
   };
 
-  const handleDimensionsChange = (newDimensions: { width: number; height: number }) => {
-    setDimensions(newDimensions); // Update dimensions
+  const handleDimensionsChange = (final: boolean, newDimensions: { width: number; height: number }) => {
+    let newHeight = newDimensions.height;
+    if (final) {
+      newHeight = newDimensions.height < defaultDim.height / 2 ? defaultDim.height / 2 : defaultDim.height;
+    }
+    setDimensions({ width: newDimensions.width, height: newHeight });
+    if (newHeight <= defaultDim.height * 0.9) {
+      setWidgetSize(1);
+    } else {
+      setWidgetSize(0);
+    }
   };
 
   return (
@@ -116,6 +129,8 @@ function SnapContainer({ children }: SnapContainerProps) {
         onDragStart: handleDragStart,
         onDragEnd: handleDragEnd,
         onDimensionsChange: handleDimensionsChange,
+        dimensions: dimensions,
+        widgetSize: widgetSize,
       })}
     </div>
   );
