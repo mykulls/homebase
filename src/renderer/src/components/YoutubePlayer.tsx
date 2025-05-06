@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect, FormEvent } from "react";
 
-interface YouTubePlayerWithControlsProps {
+interface YoutubePlayerProps {
   audioOnly?: boolean;
 }
 
-function YouTubePlayerWithControls({ audioOnly = false }: YouTubePlayerWithControlsProps) {
+function YoutubePlayer({ audioOnly = false }: YoutubePlayerProps) {
   const [videoId, setVideoId] = useState<string>("");
   const [input, setInput] = useState<string>("");
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -137,4 +137,4 @@ function YouTubePlayerWithControls({ audioOnly = false }: YouTubePlayerWithContr
   );
 }
 
-export default YouTubePlayerWithControls;
+export default YoutubePlayer;
