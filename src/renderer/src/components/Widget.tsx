@@ -1,14 +1,21 @@
 import React from "react";
 import YoutubePlayer from "./YoutubePlayer";
+import SpotifyPlayer from "./SpotifyPlayer";
+
+export enum WidgetType {
+  Youtube = 0,
+  Spotify = 1,
+}
 
 interface WidgetProps {
   audioOnly?: boolean;
+  type: WidgetType;
 }
 
-function Widget({ audioOnly }: WidgetProps) {
+function Widget({ audioOnly, type }: WidgetProps) {
   return (
     <div className="clickable">
-      <YoutubePlayer audioOnly={audioOnly} />
+      {type === WidgetType.Youtube ? <YoutubePlayer audioOnly={audioOnly} /> : <SpotifyPlayer audioOnly={audioOnly} />}
     </div>
   );
 }

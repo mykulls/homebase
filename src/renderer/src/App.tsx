@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Widget, DraggableWrapper, SnapContainer, ExpandCollapseButton, EditButton } from "./components";
+import { Widget, DraggableWrapper, SnapContainer, ExpandCollapseButton, EditButton, WidgetType } from "./components";
 import "./index.css";
 
 const App = () => {
@@ -84,7 +84,7 @@ const App = () => {
               onMouseLeave={handleMouseLeave}
               isEditMode={editMode}
             >
-              <Widget audioOnly={widgetSize > 0} />
+              <Widget audioOnly={widgetSize > 0} type={WidgetType.Spotify} />
             </DraggableWrapper>
           )}
         </SnapContainer>
