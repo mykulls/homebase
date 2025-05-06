@@ -9,7 +9,10 @@ export enum Corner {
 }
 
 interface SnapContainerProps {
-  corner: Corner; // New prop to determine the initial corner
+  startCorner: Corner; // New prop to determine the initial corner
+  initCorner: (corner: Corner) => void;
+  onDragEnd: (corner: Corner, nextCorner: Corner) => void;
+  cornerOccupied: (corner: Corner) => boolean;
   children: (props: {
     position: { x: number; y: number };
     onPositionChange: (position: { x: number; y: number }) => void;
@@ -21,10 +24,12 @@ interface SnapContainerProps {
   }) => ReactNode;
 }
 
-function SnapContainer({ corner, children }: SnapContainerProps) {
+function SnapContainer({ startCorner, initCorner, onDragEnd, cornerOccupied, children }: SnapContainerProps) {
   const defaultDim = { width: 420, height: 360 };
+  const padding = 20; // Distance from the edges
   const [dimensions, setDimensions] = useState(defaultDim); // Store dimensions
   const [position, setPosition] = useState({ x: 0, y: 0 }); // Position based on corner
+  const [curCorner, setCorner] = useState(startCorner);
   const [dragging, setDragging] = useState(false);
   const [nearestCorner, setNearestCorner] = useState<{ x: number; y: number } | null>(null);
   const [widgetSize, setWidgetSize] = useState(0);
@@ -41,36 +46,34 @@ function SnapContainer({ corner, children }: SnapContainerProps) {
   // Calculate initial position based on the corner prop
   useEffect(() => {
     const { innerWidth, innerHeight } = window;
-    const padding = 20; // Distance from the edges
-
     const initialPosition = getCorners(innerWidth, innerHeight, padding, defaultDim.width, defaultDim.height);
 
-    setPosition(initialPosition[corner]);
-  }, [corner]);
+    initCorner(startCorner);
+    setPosition(initialPosition[startCorner]);
+  }, [startCorner]);
 
   const snapToCorner = (pos: { x: number; y: number }) => {
     const { innerWidth, innerHeight } = window;
-    const padding = 20; // Distance from the edges
-
-    // Use the dimensions of the DraggableWrapper
     const { width, height } = dimensions;
 
     const corners = getCorners(innerWidth, innerHeight, padding, width, height);
 
     // Find the nearest corner
-    let nearest = corners[Corner.TopLeft];
+    let nextPos = corners[Corner.TopLeft];
+    let nextCorner = Corner.TopLeft;
     let minDistance = Number.MAX_VALUE;
 
-    Object.values(corners).forEach((corner) => {
-      const distance = Math.hypot(pos.x - corner.x, pos.y - corner.y);
+    Object.entries(corners).forEach(([corner, cornerPos]) => {
+      const distance = Math.hypot(pos.x - cornerPos.x, pos.y - cornerPos.y);
       if (distance < minDistance) {
         minDistance = distance;
-        nearest = corner;
+        nextPos = cornerPos;
+        nextCorner = corner as Corner; // Cast to Corner enum
       }
     });
 
-    setNearestCorner(nearest); // Update the nearest corner
-    return nearest;
+    setNearestCorner(nextPos); // Update the nearest corner
+    return { nextPos, nextCorner };
   };
 
   const handlePositionChange = (newPosition: { x: number; y: number }) => {
@@ -87,8 +90,17 @@ function SnapContainer({ corner, children }: SnapContainerProps) {
 
   const handleDragEnd = () => {
     // Snap to the nearest corner when dragging ends
-    const snappedPosition = snapToCorner(position);
-    setPosition(snappedPosition);
+    const { nextPos, nextCorner } = snapToCorner(position);
+    if (cornerOccupied(nextCorner)) {
+      const { innerWidth, innerHeight } = window;
+      const { width, height } = dimensions;
+      setPosition(getCorners(innerWidth, innerHeight, padding, width, height)[curCorner]);
+      onDragEnd(curCorner, curCorner);
+    } else {
+      setPosition(nextPos);
+      setCorner(nextCorner);
+      onDragEnd(curCorner, nextCorner);
+    }
     setDragging(false);
   };
 
@@ -110,27 +122,27 @@ function SnapContainer({ corner, children }: SnapContainerProps) {
       {dragging &&
         Object.values(Corner).map((corner) => {
           const { innerWidth, innerHeight } = window;
-          const padding = 20;
           const { width, height } = dimensions;
           const cornerPosition = getCorners(innerWidth, innerHeight, padding, width, height)[corner];
           const isNearest = nearestCorner?.x === cornerPosition.x && nearestCorner?.y === cornerPosition.y;
-
           return (
-            <div
-              key={corner}
-              style={{
-                position: "absolute",
-                left: cornerPosition.x,
-                top: cornerPosition.y,
-                width: `${width}px`,
-                height: `${height}px`,
-                border: "2px dashed white",
-                opacity: isNearest ? 0.7 : 0.2, // Highlight the nearest corner
-                pointerEvents: "none",
-                transform: "translate(-2px, -2px)", // Adjust for border width
-                borderRadius: "12px",
-              }}
-            />
+            (corner === curCorner || !cornerOccupied(corner)) && (
+              <div
+                key={corner}
+                style={{
+                  position: "absolute",
+                  left: cornerPosition.x,
+                  top: cornerPosition.y,
+                  width: `${width}px`,
+                  height: `${height}px`,
+                  border: "2px dashed white",
+                  opacity: isNearest ? 0.7 : 0.2, // Highlight the nearest corner
+                  pointerEvents: "none",
+                  transform: "translate(-2px, -2px)", // Adjust for border width
+                  borderRadius: "12px",
+                }}
+              />
+            )
           );
         })}
 

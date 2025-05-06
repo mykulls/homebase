@@ -81,8 +81,6 @@ function YoutubePlayer({ audioOnly = false }: YoutubePlayerProps) {
     }
   };
 
-  console.log(audioOnly);
-
   return (
     <div style={{ padding: "16px", maxWidth: "600px", margin: "0 auto" }}>
       <form onSubmit={handleSubmit} style={{ marginBottom: "16px", display: "flex", gap: "8px" }}>

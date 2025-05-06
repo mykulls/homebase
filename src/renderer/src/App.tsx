@@ -10,10 +10,20 @@ import {
 } from "./components";
 import "./index.css";
 
+enum WidgetState {
+  None,
+  Exists,
+}
+
 const App = () => {
   const [collapsed, setCollapsed] = useState(false); // State to track if windows are collapsed
   const [editMode, setEditMode] = useState(false);
-  const [windowHeight, setWindowHeight] = useState(window.innerHeight);
+  const [widgets, setWidgets] = useState({
+    [Corner.TopLeft]: WidgetState.None,
+    [Corner.TopRight]: WidgetState.None,
+    [Corner.BottomRight]: WidgetState.None,
+    [Corner.BottomLeft]: WidgetState.None,
+  });
 
   useEffect(() => {
     window.electron?.setIgnoreMouseEvents(true);
@@ -38,8 +48,24 @@ const App = () => {
     setEditMode((prev) => !prev); // Toggle the edit mode
   };
 
-  const handleDimensionsChange = (dimensions: { width: number; height: number }) => {
-    setWindowHeight(dimensions.height);
+  const initCorner = (corner: Corner) => {
+    setWidgets((prev) => ({
+      ...prev,
+      [corner]: WidgetState.Exists,
+    }));
+  };
+
+  const cornerOccupied = (corner: Corner) => {
+    return widgets[corner] === WidgetState.Exists;
+  };
+
+  const onDragEnd = (corner: Corner, nextCorner: Corner) => {
+    if (corner === nextCorner) return;
+    setWidgets((prev) => ({
+      ...prev,
+      [corner]: WidgetState.None,
+      [nextCorner]: WidgetState.Exists,
+    }));
   };
 
   return (
@@ -78,7 +104,12 @@ const App = () => {
           pointerEvents: collapsed ? "none" : "auto", // Disable interaction when collapsed
         }}
       >
-        <SnapContainer corner={Corner.TopLeft}>
+        <SnapContainer
+          startCorner={Corner.TopLeft}
+          initCorner={initCorner}
+          onDragEnd={onDragEnd}
+          cornerOccupied={cornerOccupied}
+        >
           {({ position, onPositionChange, onDragStart, onDragEnd, onDimensionsChange, dimensions, widgetSize }) => (
             <DraggableWrapper
               collapsed={collapsed}
@@ -96,7 +127,12 @@ const App = () => {
             </DraggableWrapper>
           )}
         </SnapContainer>
-        <SnapContainer corner={Corner.TopRight}>
+        <SnapContainer
+          startCorner={Corner.TopRight}
+          initCorner={initCorner}
+          onDragEnd={onDragEnd}
+          cornerOccupied={cornerOccupied}
+        >
           {({ position, onPositionChange, onDragStart, onDragEnd, onDimensionsChange, dimensions, widgetSize }) => (
             <DraggableWrapper
               collapsed={collapsed}
