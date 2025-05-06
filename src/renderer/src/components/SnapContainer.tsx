@@ -1,6 +1,15 @@
-import React, { useState, ReactNode } from "react";
+import React, { useState, ReactNode, useEffect } from "react";
+
+export enum Corner {
+  // string enums for looping
+  TopLeft = "top-left",
+  TopRight = "top-right",
+  BottomRight = "bottom-right",
+  BottomLeft = "bottom-left",
+}
 
 interface SnapContainerProps {
+  corner: Corner; // New prop to determine the initial corner
   children: (props: {
     position: { x: number; y: number };
     onPositionChange: (position: { x: number; y: number }) => void;
@@ -12,13 +21,32 @@ interface SnapContainerProps {
   }) => ReactNode;
 }
 
-function SnapContainer({ children }: SnapContainerProps) {
-  const [position, setPosition] = useState({ x: 20, y: 20 });
-  const [dragging, setDragging] = useState(false);
+function SnapContainer({ corner, children }: SnapContainerProps) {
   const defaultDim = { width: 420, height: 360 };
   const [dimensions, setDimensions] = useState(defaultDim); // Store dimensions
+  const [position, setPosition] = useState({ x: 0, y: 0 }); // Position based on corner
+  const [dragging, setDragging] = useState(false);
   const [nearestCorner, setNearestCorner] = useState<{ x: number; y: number } | null>(null);
   const [widgetSize, setWidgetSize] = useState(0);
+
+  const getCorners = (innerWidth: number, innerHeight: number, padding: number, width: number, height: number) => {
+    return {
+      [Corner.TopLeft]: { x: padding, y: padding },
+      [Corner.TopRight]: { x: innerWidth - width - padding, y: padding },
+      [Corner.BottomRight]: { x: innerWidth - width - padding, y: innerHeight - height - padding }, // Bottom right
+      [Corner.BottomLeft]: { x: padding, y: innerHeight - height - padding },
+    };
+  };
+
+  // Calculate initial position based on the corner prop
+  useEffect(() => {
+    const { innerWidth, innerHeight } = window;
+    const padding = 20; // Distance from the edges
+
+    const initialPosition = getCorners(innerWidth, innerHeight, padding, defaultDim.width, defaultDim.height);
+
+    setPosition(initialPosition[corner]);
+  }, [corner]);
 
   const snapToCorner = (pos: { x: number; y: number }) => {
     const { innerWidth, innerHeight } = window;
@@ -27,19 +55,13 @@ function SnapContainer({ children }: SnapContainerProps) {
     // Use the dimensions of the DraggableWrapper
     const { width, height } = dimensions;
 
-    // Define the 4 corners, accounting for the dimensions of the DraggableWrapper
-    const corners = [
-      { x: padding, y: padding }, // Top left
-      { x: innerWidth - width - padding, y: padding }, // Top right
-      { x: padding, y: innerHeight - height - padding }, // Bottom left
-      { x: innerWidth - width - padding, y: innerHeight - height - padding }, // Bottom right
-    ];
+    const corners = getCorners(innerWidth, innerHeight, padding, width, height);
 
     // Find the nearest corner
-    let nearest = corners[0];
+    let nearest = corners[Corner.TopLeft];
     let minDistance = Number.MAX_VALUE;
 
-    corners.forEach((corner) => {
+    Object.values(corners).forEach((corner) => {
       const distance = Math.hypot(pos.x - corner.x, pos.y - corner.y);
       if (distance < minDistance) {
         minDistance = distance;
@@ -85,22 +107,12 @@ function SnapContainer({ children }: SnapContainerProps) {
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
-      {/* Render dotted borders for the corners only when dragging */}
       {dragging &&
-        ["top-left", "top-right", "bottom-left", "bottom-right"].map((corner, index) => {
+        Object.values(Corner).map((corner) => {
           const { innerWidth, innerHeight } = window;
           const padding = 20;
           const { width, height } = dimensions;
-
-          // Calculate corner positions
-          const cornerPositions = [
-            { x: padding, y: padding }, // Top left
-            { x: innerWidth - width - padding, y: padding }, // Top right
-            { x: padding, y: innerHeight - height - padding }, // Bottom left
-            { x: innerWidth - width - padding, y: innerHeight - height - padding }, // Bottom right
-          ];
-
-          const cornerPosition = cornerPositions[index];
+          const cornerPosition = getCorners(innerWidth, innerHeight, padding, width, height)[corner];
           const isNearest = nearestCorner?.x === cornerPosition.x && nearestCorner?.y === cornerPosition.y;
 
           return (
@@ -113,8 +125,8 @@ function SnapContainer({ children }: SnapContainerProps) {
                 width: `${width}px`,
                 height: `${height}px`,
                 border: "2px dashed white",
-                opacity: isNearest ? 0.7 : 0.2, // Adjust opacity based on nearest corner
-                pointerEvents: "none", // Prevent interaction
+                opacity: isNearest ? 0.7 : 0.2, // Highlight the nearest corner
+                pointerEvents: "none",
                 transform: "translate(-2px, -2px)", // Adjust for border width
                 borderRadius: "12px",
               }}
@@ -122,7 +134,6 @@ function SnapContainer({ children }: SnapContainerProps) {
           );
         })}
 
-      {/* Render children */}
       {children({
         position,
         onPositionChange: handlePositionChange,

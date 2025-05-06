@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Widget, DraggableWrapper, SnapContainer, ExpandCollapseButton, EditButton, WidgetType } from "./components";
+import {
+  Widget,
+  DraggableWrapper,
+  SnapContainer,
+  ExpandCollapseButton,
+  EditButton,
+  WidgetType,
+  Corner,
+} from "./components";
 import "./index.css";
 
 const App = () => {
@@ -70,7 +78,25 @@ const App = () => {
           pointerEvents: collapsed ? "none" : "auto", // Disable interaction when collapsed
         }}
       >
-        <SnapContainer>
+        <SnapContainer corner={Corner.TopLeft}>
+          {({ position, onPositionChange, onDragStart, onDragEnd, onDimensionsChange, dimensions, widgetSize }) => (
+            <DraggableWrapper
+              collapsed={collapsed}
+              position={position}
+              onPositionChange={onPositionChange}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+              onDimensionsChange={onDimensionsChange} // Pass dimensions handler
+              dimensions={dimensions}
+              onMouseEnter={handleMouseEnter}
+              onMouseLeave={handleMouseLeave}
+              isEditMode={editMode}
+            >
+              <Widget audioOnly={widgetSize > 0} type={WidgetType.Youtube} />
+            </DraggableWrapper>
+          )}
+        </SnapContainer>
+        <SnapContainer corner={Corner.TopRight}>
           {({ position, onPositionChange, onDragStart, onDragEnd, onDimensionsChange, dimensions, widgetSize }) => (
             <DraggableWrapper
               collapsed={collapsed}
