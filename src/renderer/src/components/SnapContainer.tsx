@@ -10,30 +10,24 @@ export enum Corner {
 
 interface SnapContainerProps {
   startCorner: Corner; // New prop to determine the initial corner
-  initCorner: (corner: Corner) => void;
   onDragEnd: (corner: Corner, nextCorner: Corner) => void;
+  onDelete: (corner: Corner) => void;
   cornerOccupied: (corner: Corner) => boolean;
   children: (props: {
     position: { x: number; y: number };
     onPositionChange: (position: { x: number; y: number }) => void;
     onDragStart: () => void;
     onDragEnd: () => void;
+    onDelete: () => void;
     onDimensionsChange: (final: boolean, dimensions: { width: number; height: number }) => void;
     dimensions: { width: number; height: number };
     widgetSize: number;
   }) => ReactNode;
 }
 
-function SnapContainer({ startCorner, initCorner, onDragEnd, cornerOccupied, children }: SnapContainerProps) {
-  const defaultDim = { width: 420, height: 360 };
-  const padding = 20; // Distance from the edges
-  const [dimensions, setDimensions] = useState(defaultDim); // Store dimensions
-  const [position, setPosition] = useState({ x: 0, y: 0 }); // Position based on corner
-  const [curCorner, setCorner] = useState(startCorner);
-  const [dragging, setDragging] = useState(false);
-  const [nearestCorner, setNearestCorner] = useState<{ x: number; y: number } | null>(null);
-  const [widgetSize, setWidgetSize] = useState(0);
-
+function SnapContainer({ startCorner, onDragEnd, onDelete, cornerOccupied, children }: SnapContainerProps) {
+  const initWidth = window.innerWidth;
+  const initHeight = window.innerHeight;
   const getCorners = (innerWidth: number, innerHeight: number, padding: number, width: number, height: number) => {
     return {
       [Corner.TopLeft]: { x: padding, y: padding },
@@ -43,12 +37,23 @@ function SnapContainer({ startCorner, initCorner, onDragEnd, cornerOccupied, chi
     };
   };
 
+  const defaultDim = { width: 420, height: 360 };
+  const padding = 20; // Distance from the edges
+  const [dimensions, setDimensions] = useState(defaultDim); // Store dimensions
+  const [position, setPosition] = useState(
+    getCorners(initWidth, initHeight, padding, defaultDim.width, defaultDim.height)[startCorner]
+  ); // Position based on corner
+  const [curCorner, setCorner] = useState(startCorner);
+  const [dragging, setDragging] = useState(false);
+  const [nearestCorner, setNearestCorner] = useState<{ x: number; y: number } | null>(null);
+  const [widgetSize, setWidgetSize] = useState(0);
+  const [loading, setLoading] = useState(true);
+
   // Calculate initial position based on the corner prop
   useEffect(() => {
     const { innerWidth, innerHeight } = window;
     const initialPosition = getCorners(innerWidth, innerHeight, padding, defaultDim.width, defaultDim.height);
 
-    initCorner(startCorner);
     setPosition(initialPosition[startCorner]);
   }, [startCorner]);
 
@@ -117,6 +122,10 @@ function SnapContainer({ startCorner, initCorner, onDragEnd, cornerOccupied, chi
     }
   };
 
+  const handleDelete = () => {
+    onDelete(curCorner);
+  };
+
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
       {dragging &&
@@ -151,6 +160,7 @@ function SnapContainer({ startCorner, initCorner, onDragEnd, cornerOccupied, chi
         onPositionChange: handlePositionChange,
         onDragStart: handleDragStart,
         onDragEnd: handleDragEnd,
+        onDelete: handleDelete,
         onDimensionsChange: handleDimensionsChange,
         dimensions: dimensions,
         widgetSize: widgetSize,

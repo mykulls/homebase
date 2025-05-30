@@ -12,7 +12,8 @@ interface DraggableWrapperProps {
   onDragEnd?: () => void;
   onDimensionsChange?: (final: boolean, dimensions: { width: number; height: number }) => void;
   dimensions?: { width: number; height: number };
-  isEditMode?: boolean; // Add isEditMode to control the resizable corner
+  isEditMode?: boolean;
+  onDelete?: () => void;
 }
 
 function DraggableWrapper({
@@ -27,11 +28,11 @@ function DraggableWrapper({
   onDragEnd = () => {},
   onDimensionsChange = () => {},
   dimensions = { width: 0, height: 0 },
-  isEditMode = false, // Default to false
+  isEditMode = false,
+  onDelete = () => {},
 }: DraggableWrapperProps) {
   const [dragging, setDragging] = useState(false);
   const [resizing, setResizing] = useState(false); // Track resizing state
-  const defaultDim = dimensions;
   const offsetRef = useRef({ x: 0, y: 0 });
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -43,6 +44,7 @@ function DraggableWrapper({
     onDragStart = () => {};
     onDragEnd = () => {};
     onDimensionsChange = () => {};
+    onDelete = () => {};
   }
 
   useEffect(() => {
@@ -138,6 +140,35 @@ function DraggableWrapper({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
+      {isEditMode && draggable && !collapsed && (
+        <div
+          style={{
+            position: "absolute",
+            top: -3,
+            left: -3,
+            width: "24px",
+            height: "24px",
+            cursor: "pointer",
+            background: "#dc3545",
+            color: "white",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "16px",
+            fontWeight: "bold",
+            zIndex: 1000,
+            boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete?.();
+          }}
+        >
+          ×
+        </div>
+      )}
+
       {children}
 
       {isEditMode && draggable && !collapsed && (
