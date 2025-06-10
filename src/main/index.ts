@@ -1,7 +1,16 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import { join } from "path";
+import { authenticateWithGoogle, getCalendarEvents } from "./auth/google";
 
-const devMode = false;
+const devMode = true;
+
+ipcMain.handle("google-auth", async () => {
+  return await authenticateWithGoogle();
+});
+
+ipcMain.handle("get-calendar-events", async () => {
+  return await getCalendarEvents();
+});
 
 const createWindow = () => {
   const win = new BrowserWindow({
@@ -18,6 +27,8 @@ const createWindow = () => {
       allowRunningInsecureContent: true,
     },
   });
+
+  // win.setBackgroundMaterial("acrylic");
 
   win.loadFile(join(__dirname, "../renderer/index.html"));
 

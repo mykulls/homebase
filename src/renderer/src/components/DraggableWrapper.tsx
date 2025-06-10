@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import "./DraggableWrapper.css";
 
 interface DraggableWrapperProps {
   children: React.ReactNode;
@@ -81,7 +82,7 @@ function DraggableWrapper({
   }, [resizing, onDimensionsChange]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!draggable) return; // Prevent dragging if not draggable
+    if (!draggable || !isEditMode) return; // Prevent dragging if not draggable
 
     const target = e.target as HTMLElement;
     const tag = target.tagName.toLowerCase();
@@ -111,15 +112,18 @@ function DraggableWrapper({
       ref={wrapperRef} // Attach ref to the wrapper
       className="draggable"
       style={{
-        display: "flex",
         position: "absolute",
         left: position.x,
         top: position.y,
         width: `${dimensions.width}px`, // Use dynamic width
         height: `${dimensions.height}px`, // Use dynamic height
         userSelect: "none",
-        cursor: dragging ? "grabbing" : draggable ? "grab" : "default",
-        opacity: dragging || resizing ? 0.5 : 1, // Add transparency while dragging or resizing
+        cursor: dragging ? "grabbing" : draggable && isEditMode ? "grab" : "default",
+        background:
+          !draggable || dragging || resizing
+            ? "linear-gradient(69deg, rgba(255, 255, 255, 0.25) 52%, rgba(255, 255, 255, 0.1) 97%)"
+            : "linear-gradient(69deg, rgba(255, 255, 255, 0.25) 12%, rgba(255, 255, 255, 0.1) 77%)",
+        // reducve transparency when dragging
         transition: dragging || resizing ? "none" : "all 0.2s ease-out", // Smooth snapping
       }}
       onMouseDown={handleMouseDown}

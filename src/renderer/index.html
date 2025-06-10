@@ -3,12 +3,16 @@
 
 <head>
   <meta charset="UTF-8" />
-  <!-- Updated Content-Security-Policy -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; 
-             script-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://open.spotify.com; 
-             frame-src https://www.youtube.com https://www.youtube-nocookie.com https://open.spotify.com;" />
-  <meta http-equiv="X-Content-Security-Policy" content="default-src 'self'; script-src 'self'" />
+  <meta http-equiv="Content-Security-Policy" content="
+    default-src 'self';
+    script-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://open.spotify.com https://apis.google.com https://accounts.google.com 'unsafe-inline';
+    frame-src https://www.youtube.com https://www.youtube-nocookie.com https://open.spotify.com https://accounts.google.com;
+    connect-src 'self' https://www.googleapis.com https://apis.google.com https://*.google.com;
+    style-src 'self' 'unsafe-inline';
+    img-src 'self' https://*.googleusercontent.com data:;" />
   <title>homebase</title>
+
+  <script src="https://apis.google.com/js/api.js"></script>
 </head>
 
 <body>

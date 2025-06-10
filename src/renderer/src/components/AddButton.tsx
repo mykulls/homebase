@@ -36,6 +36,15 @@ function AddButton({ onAddWidget }: AddButtonProps) {
           >
             Spotify Widget
           </button>
+          <button
+            className="add-option"
+            onClick={() => {
+              onAddWidget(WidgetType.Calendar);
+              setIsOpen(false);
+            }}
+          >
+            Calendar Widget
+          </button>
         </div>
       )}
     </div>

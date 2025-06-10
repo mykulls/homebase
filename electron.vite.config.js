@@ -16,8 +16,16 @@ export default defineConfig({
       },
     },
   },
-  // Optionally set renderer config if you're using one
   renderer: {
-    // vite config for renderer
+    define: {
+      "process.env": {},
+      "process.platform": JSON.stringify(process.platform),
+      "process.version": JSON.stringify(process.version),
+    },
+    resolve: {
+      alias: {
+        electron: join(__dirname, "src/renderer/electron-mock.ts"),
+      },
+    },
   },
 });

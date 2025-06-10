@@ -3,6 +3,7 @@
   flex-direction: row;
   align-items: center;
   position: relative;
+  translate: -400px; /* devMode */
 }
 
 .add-button-container:hover .add-button {
