@@ -33,6 +33,7 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
   const redirectUri = import.meta.env.VITE_SPOTIFY_REDIRECT_URI;
 
   useEffect(() => {
+    // localStorage.getItem("spotify_access_token"); // need if i want to reset the token
     // Listen for OAuth callback from main process
     window.electron?.onSpotifyCallback((data) => {
       const { code, state } = data;
@@ -104,7 +105,7 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
       response_type: "code",
       redirect_uri: redirectUri,
       state: state,
-      scope: "user-read-playback-state user-modify-playback-state streaming", // Added streaming scope
+      scope: "user-read-playback-state user-modify-playback-state user-read-email user-read-private streaming",
       code_challenge_method: "S256",
       code_challenge: codeChallenge,
     });
