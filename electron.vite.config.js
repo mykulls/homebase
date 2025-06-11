@@ -16,16 +16,5 @@ export default defineConfig({
       },
     },
   },
-  renderer: {
-    define: {
-      "process.env": {},
-      "process.platform": JSON.stringify(process.platform),
-      "process.version": JSON.stringify(process.version),
-    },
-    resolve: {
-      alias: {
-        electron: join(__dirname, "src/renderer/electron-mock.ts"),
-      },
-    },
-  },
+  renderer: {},
 });

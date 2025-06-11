@@ -5,8 +5,6 @@ declare global {
     gapi: any;
     electron?: {
       setIgnoreMouseEvents: (ignore: boolean) => void;
-      googleAuth: () => Promise<any>;
-      getEvents: () => Promise<any>;
     };
     YT: typeof YT;
     onYouTubeIframeAPIReady: () => void;
@@ -15,8 +13,7 @@ declare global {
   /// <reference types="vite/client" />
 
   interface ImportMetaEnv {
-    readonly MAIN_VITE_GOOGLE_CLIENT_ID: string;
-    readonly MAIN_VITE_GOOGLE_CLIENT_SECRET: string;
+    readonly VITE_ICS_URL: string;
   }
 
   interface ImportMeta {

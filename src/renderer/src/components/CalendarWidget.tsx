@@ -1,146 +1,100 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
+import ICAL from "ical.js";
 
 interface CalendarEvent {
-  id: string;
   summary: string;
-  start: { dateTime: string };
-  end: { dateTime: string };
+  start: string;
+  end: string;
+  location?: string;
+  description?: string;
 }
 
 function CalendarWidget() {
-  const [isSignedIn, setIsSignedIn] = useState(false);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
 
-  const handleSignIn = async () => {
+  const icsUrl = import.meta.env.VITE_ICS_URL;
+
+  const isToday = (dateString: string) => {
+    const date = new Date(dateString);
+    const today = new Date();
+    return (
+      date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear()
+    );
+  };
+
+  const parseIcsText = (ics: string): CalendarEvent[] => {
     try {
-      setLoading(true);
-      setError(null);
-      await window.electron?.googleAuth();
-      setIsSignedIn(true);
-      console.log("Signed in successfully");
-      await fetchEvents();
-      console.log("Events fetched successfully");
+      const jcalData = ICAL.parse(ics);
+      const comp = new ICAL.Component(jcalData);
+      const vevents = comp.getAllSubcomponents("vevent");
+
+      return vevents.map((vevent) => {
+        const event = new ICAL.Event(vevent);
+        return {
+          summary: event.summary,
+          start: event.startDate.toJSDate().toISOString(),
+          end: event.endDate.toJSDate().toISOString(),
+          location: event.location,
+          description: event.description,
+        };
+      });
     } catch (err) {
-      console.error("Auth failed:", err);
-      setError("Authentication failed. Please try again.");
-      setIsSignedIn(false);
-    } finally {
-      setLoading(false);
+      setError("Failed to parse ICS file.");
+      console.error(err);
+      return [];
     }
   };
 
-  const fetchEvents = async () => {
-    if (!isSignedIn) {
-      setError("Please sign in first");
-      return;
-    }
-
-    try {
-      setLoading(true);
-      setError(null);
-      const fetchedEvents = await window.electron?.getEvents();
-
-      if (!fetchedEvents) {
-        throw new Error("No events received");
-      }
-
-      const formattedEvents: CalendarEvent[] = fetchedEvents.map((event: any) => ({
-        id: event.id,
-        summary: event.summary,
-        start: { dateTime: event.start.dateTime || event.start.date },
-        end: { dateTime: event.end.dateTime || event.end.date },
-      }));
-
-      setEvents(formattedEvents);
-    } catch (err) {
-      console.error("Fetching events failed:", err);
-      if ((err as Error).message.includes("Not authenticated")) {
-        setIsSignedIn(false);
-        setError("Please sign in to view your calendar");
-      } else {
-        setError("Failed to fetch events. Please try again.");
-      }
-      setEvents([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Remove the initialization useEffect since we want to show the sign-in button first
-
-  if (loading) {
-    return (
-      <div style={{ padding: "16px", maxWidth: "600px", display: "flex", justifyContent: "center" }}>Loading...</div>
-    );
-  }
-
-  if (!isSignedIn || error) {
-    return (
-      <div style={{ padding: "16px", maxWidth: "600px", textAlign: "center" }}>
-        {error && <p style={{ color: "red", marginBottom: "16px" }}>{error}</p>}
-        <button
-          onClick={handleSignIn}
-          style={{
-            padding: "8px 16px",
-            backgroundColor: "#4285f4",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            fontSize: "14px",
-          }}
-        >
-          Sign in with Google
-        </button>
-      </div>
-    );
-  }
+  useEffect(() => {
+    setError(null);
+    fetch(icsUrl)
+      .then((response) => {
+        if (!response.ok) throw new Error("Failed to fetch ICS file.");
+        return response.text();
+      })
+      .then((icsText) => {
+        const parsedEvents = parseIcsText(icsText);
+        // Filter events for only today's
+        const todaysEvents = parsedEvents.filter((event) => isToday(event.start));
+        setEvents(todaysEvents);
+      })
+      .catch((err) => {
+        console.error(err);
+        setError(err.message || "Failed to fetch or parse ICS.");
+      });
+  }, [icsUrl]);
 
   return (
-    <div style={{ padding: "16px", maxWidth: "600px" }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px" }}>
-        <h3 style={{ margin: 0 }}>Today's Events</h3>
-        <button
-          onClick={() => fetchEvents()}
-          style={{
-            padding: "4px 8px",
-            backgroundColor: "#4285f4",
-            color: "white",
-            border: "none",
-            borderRadius: "4px",
-            cursor: "pointer",
-            fontSize: "12px",
-          }}
-        >
-          Refresh
-        </button>
+    <div style={{ padding: "16px", maxWidth: "600px", margin: "0 auto" }}>
+      <h3>Today's Events</h3>
+      {error && <p style={{ color: "red" }}>{error}</p>}
+
+      <div style={{ maxHeight: "300px", overflowY: "auto", marginTop: "16px" }}>
+        {events.map((event, index) => (
+          <div
+            key={index}
+            style={{
+              padding: "12px",
+              marginBottom: "8px",
+              backgroundColor: "#f8f9fa",
+              borderRadius: "4px",
+              border: "1px solid #dee2e6",
+            }}
+          >
+            <div style={{ fontWeight: "bold" }}>{event.summary}</div>
+            <div style={{ fontSize: "14px", color: "#666" }}>
+              {new Date(event.start).toLocaleTimeString()} – {new Date(event.end).toLocaleTimeString()}
+            </div>
+            {event.location && <div style={{ fontSize: "14px", color: "#333" }}>📍 {event.location}</div>}
+          </div>
+        ))}
+        {events.length === 0 && !error && (
+          <div style={{ textAlign: "center", color: "#666" }}>No events scheduled for today</div>
+        )}
       </div>
-      {events.length > 0 ? (
-        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
-          {events.map((event) => (
-            <li
-              key={event.id}
-              style={{
-                padding: "12px",
-                marginBottom: "8px",
-                backgroundColor: "rgba(255, 255, 255, 0.1)",
-                borderRadius: "4px",
-              }}
-            >
-              <strong>{event.summary}</strong>
-              <br />
-              <span style={{ fontSize: "14px", opacity: 0.8 }}>
-                {new Date(event.start.dateTime).toLocaleTimeString()} –{" "}
-                {new Date(event.end.dateTime).toLocaleTimeString()}
-              </span>
-            </li>
-          ))}
-        </ul>
-      ) : (
-        <p style={{ textAlign: "center", color: "#666" }}>No events scheduled for today</p>
-      )}
     </div>
   );
 }
