@@ -16,6 +16,7 @@ interface SnapContainerProps {
   newCorner: Corner | null;
   nullNewCorner: () => void;
   children: (props: {
+    bottom: boolean;
     position: { x: number; y: number };
     onPositionChange: (position: { x: number; y: number }) => void;
     onDragStart: () => void;
@@ -55,6 +56,7 @@ function SnapContainer({
   );
   const [curCorner, setCorner] = useState(startCorner);
   const [dragging, setDragging] = useState(false);
+  const [resizing, setResizing] = useState(false);
   const [nearestCorner, setNearestCorner] = useState<{ x: number; y: number } | null>(null);
   const [widgetSize, setWidgetSize] = useState(0);
 
@@ -100,7 +102,7 @@ function SnapContainer({
   };
 
   const handlePositionChange = (newPosition: { x: number; y: number }) => {
-    if (dragging) {
+    if (dragging || (resizing && (curCorner === Corner.BottomLeft || curCorner === Corner.BottomRight))) {
       setPosition(newPosition);
       snapToCorner(newPosition);
     }
@@ -121,9 +123,16 @@ function SnapContainer({
   };
 
   const handleDimensionsChange = (final: boolean, newDimensions: { width: number; height: number }) => {
+    setResizing(true);
+
     let newHeight = newDimensions.height;
     if (final) {
       newHeight = newDimensions.height < defaultDim.height / 2 ? defaultDim.height / 2 : defaultDim.height;
+
+      const { innerWidth, innerHeight } = window;
+      const nextPos = getCorners(innerWidth, innerHeight, padding, newDimensions.width, newHeight)[curCorner];
+      setPosition(nextPos);
+      setResizing(false);
     }
     setDimensions({ width: newDimensions.width, height: newHeight });
     if (newHeight <= defaultDim.height * 0.9) {
@@ -167,6 +176,7 @@ function SnapContainer({
         })}
 
       {children({
+        bottom: curCorner === Corner.BottomLeft || curCorner === Corner.BottomRight,
         position,
         onPositionChange: handlePositionChange,
         onDragStart: handleDragStart,

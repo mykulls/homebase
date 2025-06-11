@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
 import "./DraggableWrapper.css";
+import { Corner } from "./SnapContainer";
 
 interface DraggableWrapperProps {
   children: React.ReactNode;
+  bottom: boolean;
   position: { x: number; y: number };
   draggable?: boolean;
   collapsed?: boolean;
@@ -19,6 +21,7 @@ interface DraggableWrapperProps {
 
 function DraggableWrapper({
   children,
+  bottom,
   position,
   draggable = true,
   collapsed = false,
@@ -36,6 +39,7 @@ function DraggableWrapper({
   const [resizing, setResizing] = useState(false);
   const offsetRef = useRef({ x: 0, y: 0 });
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const initialBottomRef = useRef<number>(0); // Add this new ref
 
   if (collapsed) {
     draggable = false;
@@ -52,20 +56,28 @@ function DraggableWrapper({
     const handleResize = (e: MouseEvent) => {
       if (!resizing || !wrapperRef.current) return;
 
-      const rect = wrapperRef.current.getBoundingClientRect();
-      const newHeight = Math.max(100, e.clientY - rect.top); // Minimum height of 100px
-
-      onDimensionsChange(false, { width: rect.width, height: newHeight });
+      if (bottom) {
+        // Use the stored initial bottom position instead of current rect.bottom
+        const newHeight = Math.max(100, initialBottomRef.current - e.clientY);
+        onDimensionsChange(false, { width: dimensions.width, height: newHeight });
+        onPositionChange({ x: position.x, y: initialBottomRef.current - newHeight });
+      } else {
+        // Original behavior for top corners
+        const rect = wrapperRef.current.getBoundingClientRect();
+        const newHeight = Math.max(100, e.clientY - rect.top);
+        onDimensionsChange(false, { width: dimensions.width, height: newHeight });
+      }
     };
 
     const handleResizeEnd = () => {
       if (resizing) {
         setResizing(false);
 
-        // Snap height to the closest option (half height or full height)
         if (wrapperRef.current) {
           const rect = wrapperRef.current.getBoundingClientRect();
-          onDimensionsChange(true, { width: rect.width, height: rect.height });
+          const newHeight = rect.height;
+
+          onDimensionsChange(true, { width: dimensions.width, height: newHeight });
         }
       }
     };
@@ -79,7 +91,7 @@ function DraggableWrapper({
       document.removeEventListener("mousemove", handleResize);
       document.removeEventListener("mouseup", handleResizeEnd);
     };
-  }, [resizing, onDimensionsChange]);
+  }, [resizing, onDimensionsChange, onPositionChange, dimensions.width]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!draggable || !isEditMode) return; // Prevent dragging if not draggable
@@ -101,7 +113,12 @@ function DraggableWrapper({
     e.preventDefault();
   };
 
+  // Modify handleResizeStart to store initial bottom position
   const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (wrapperRef.current) {
+      const rect = wrapperRef.current.getBoundingClientRect();
+      initialBottomRef.current = rect.bottom;
+    }
     setResizing(true);
     e.stopPropagation();
     e.preventDefault();
@@ -164,6 +181,10 @@ function DraggableWrapper({
             zIndex: 1000,
             boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
           }}
+          onMouseDown={(e) => {
+            e.stopPropagation();
+            e.preventDefault();
+          }}
           onClick={(e) => {
             e.stopPropagation();
             onDelete?.();
@@ -179,14 +200,15 @@ function DraggableWrapper({
         <div
           style={{
             position: "absolute",
-            bottom: -3,
+            ...(bottom ? { top: -3 } : { bottom: -3 }),
+            ...(bottom ? { rotate: "-90deg" } : {}),
             right: -3,
             width: "16px",
             height: "16px",
-            cursor: "nwse-resize",
+            ...(bottom ? { cursor: "nesw-resize" } : { cursor: "nwse-resize" }),
             borderRight: "6px solid grey",
             borderBottom: "6px solid grey",
-            borderRadius: "3px",
+            borderRadius: "4px",
           }}
           onMouseDown={handleResizeStart}
         />
