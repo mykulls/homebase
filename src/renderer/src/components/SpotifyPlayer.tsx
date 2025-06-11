@@ -33,7 +33,6 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
   const redirectUri = import.meta.env.VITE_SPOTIFY_REDIRECT_URI;
 
   useEffect(() => {
-    // localStorage.getItem("spotify_access_token"); // need if i want to reset the token
     // Listen for OAuth callback from main process
     window.electron?.onSpotifyCallback((data) => {
       const { code, state } = data;
@@ -48,8 +47,28 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
     // Check for existing token
     const savedToken = localStorage.getItem("spotify_access_token");
     if (savedToken) {
-      setAccessToken(savedToken);
-      setIsAuthorized(true);
+      // Validate token by making a test request
+      fetch("https://api.spotify.com/v1/me", {
+        headers: {
+          Authorization: `Bearer ${savedToken}`,
+        },
+      })
+        .then((res) => {
+          if (res.status === 401) {
+            // Token is invalid/expired
+            localStorage.removeItem("spotify_access_token");
+            setAccessToken(null);
+            setIsAuthorized(false);
+          } else if (res.ok) {
+            setAccessToken(savedToken);
+            setIsAuthorized(true);
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem("spotify_access_token");
+          setAccessToken(null);
+          setIsAuthorized(false);
+        });
     }
   }, []);
 
