@@ -32,23 +32,22 @@ function SnapContainer({ startCorner, onDragEnd, onDelete, cornerOccupied, child
     return {
       [Corner.TopLeft]: { x: padding, y: padding },
       [Corner.TopRight]: { x: innerWidth - width - padding, y: padding },
-      [Corner.BottomRight]: { x: innerWidth - width - padding, y: innerHeight - height - padding }, // Bottom right
+      [Corner.BottomRight]: { x: innerWidth - width - padding, y: innerHeight - height - padding },
       [Corner.BottomLeft]: { x: padding, y: innerHeight - height - padding },
     };
   };
 
   const defaultDim = { width: 420, height: 360 };
-  const padding = 20; // Distance from the edges
-  const [dimensions, setDimensions] = useState(defaultDim); // Store dimensions
+  const padding = 20;
+  const [dimensions, setDimensions] = useState(defaultDim);
   const [position, setPosition] = useState(
     getCorners(initWidth, initHeight, padding, defaultDim.width, defaultDim.height)[startCorner]
-  ); // Position based on corner
+  );
   const [curCorner, setCorner] = useState(startCorner);
   const [dragging, setDragging] = useState(false);
   const [nearestCorner, setNearestCorner] = useState<{ x: number; y: number } | null>(null);
   const [widgetSize, setWidgetSize] = useState(0);
 
-  // Calculate initial position based on the corner prop
   useEffect(() => {
     const { innerWidth, innerHeight } = window;
     const initialPosition = getCorners(innerWidth, innerHeight, padding, defaultDim.width, defaultDim.height);
@@ -72,19 +71,18 @@ function SnapContainer({ startCorner, onDragEnd, onDelete, cornerOccupied, child
       if (distance < minDistance) {
         minDistance = distance;
         nextPos = cornerPos;
-        nextCorner = corner as Corner; // Cast to Corner enum
+        nextCorner = corner as Corner;
       }
     });
 
-    setNearestCorner(nextPos); // Update the nearest corner
+    setNearestCorner(nextPos);
     return { nextPos, nextCorner };
   };
 
   const handlePositionChange = (newPosition: { x: number; y: number }) => {
     if (dragging) {
-      // Allow free dragging while the user is actively dragging
       setPosition(newPosition);
-      snapToCorner(newPosition); // Update nearest corner dynamically
+      snapToCorner(newPosition);
     }
   };
 
@@ -93,7 +91,6 @@ function SnapContainer({ startCorner, onDragEnd, onDelete, cornerOccupied, child
   };
 
   const handleDragEnd = () => {
-    // Snap to the nearest corner when dragging ends
     const { nextPos, nextCorner } = snapToCorner(position);
     if (cornerOccupied(nextCorner)) {
       const { innerWidth, innerHeight } = window;
@@ -144,7 +141,7 @@ function SnapContainer({ startCorner, onDragEnd, onDelete, cornerOccupied, child
                   width: `${width}px`,
                   height: `${height}px`,
                   border: "2px dashed white",
-                  opacity: isNearest ? 0.7 : 0.2, // Highlight the nearest corner
+                  opacity: isNearest ? 0.7 : 0.2,
                   pointerEvents: "none",
                   transform: "translate(-2px, -2px)", // Adjust for border width
                   borderRadius: "12px",

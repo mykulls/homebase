@@ -33,7 +33,7 @@ function DraggableWrapper({
   onDelete = () => {},
 }: DraggableWrapperProps) {
   const [dragging, setDragging] = useState(false);
-  const [resizing, setResizing] = useState(false); // Track resizing state
+  const [resizing, setResizing] = useState(false);
   const offsetRef = useRef({ x: 0, y: 0 });
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -96,7 +96,7 @@ function DraggableWrapper({
       y: e.clientY - rect.top,
     };
     setDragging(true);
-    onDragStart(); // Notify SnapContainer that dragging has started
+    onDragStart();
     e.stopPropagation();
     e.preventDefault();
   };
@@ -109,14 +109,14 @@ function DraggableWrapper({
 
   return (
     <div
-      ref={wrapperRef} // Attach ref to the wrapper
+      ref={wrapperRef}
       className="draggable"
       style={{
         position: "absolute",
         left: position.x,
         top: position.y,
-        width: `${dimensions.width}px`, // Use dynamic width
-        height: `${dimensions.height}px`, // Use dynamic height
+        width: `${dimensions.width}px`,
+        height: `${dimensions.height}px`,
         userSelect: "none",
         cursor: dragging ? "grabbing" : draggable && isEditMode ? "grab" : "default",
         background:
@@ -124,7 +124,7 @@ function DraggableWrapper({
             ? "linear-gradient(69deg, rgba(255, 255, 255, 0.25) 52%, rgba(255, 255, 255, 0.1) 97%)"
             : "linear-gradient(69deg, rgba(255, 255, 255, 0.25) 12%, rgba(255, 255, 255, 0.1) 77%)",
         // reduce transparency when dragging
-        transition: dragging || resizing ? "none" : "all 0.2s ease-out", // Smooth snapping
+        transition: dragging || resizing ? "none" : "all 0.2s ease-out",
       }}
       onMouseDown={handleMouseDown}
       onMouseMove={(e) => {
@@ -138,7 +138,7 @@ function DraggableWrapper({
       onMouseUp={() => {
         if (dragging) {
           setDragging(false);
-          onDragEnd(); // Notify SnapContainer that dragging has ended
+          onDragEnd();
         }
       }}
       onMouseEnter={onMouseEnter}

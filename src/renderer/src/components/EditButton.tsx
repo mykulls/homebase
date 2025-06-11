@@ -11,11 +11,7 @@ function EditButton({ isEditMode, toggleEditMode }: EditButtonProps) {
     <div className="edit-button-container">
       <button className="edit-button" onClick={toggleEditMode}>
         <span className="edit-caret">^</span>
-        {isEditMode ? (
-          <span className="edit-icon">🔒</span> // Lock icon for edit mode
-        ) : (
-          <span className="edit-icon">⚙️</span> // Gear icon for normal mode
-        )}
+        {isEditMode ? <span className="edit-icon">🔒</span> : <span className="edit-icon">⚙️</span>}
       </button>
     </div>
   );

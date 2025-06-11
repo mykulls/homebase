@@ -112,17 +112,23 @@ const App = () => {
 
   return (
     <div>
-      {/* Add Button */}
-      <DraggableWrapper
-        position={{ x: window.innerWidth - 20, y: window.innerHeight - 100 }}
-        draggable={false}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
+      <div
+        style={{
+          opacity: collapsed ? 0 : 1,
+          transition: "opacity 0.2s ease",
+          pointerEvents: collapsed ? "none" : "auto",
+        }}
       >
-        <AddButton onAddWidget={handleAddWidget} />
-      </DraggableWrapper>
+        <DraggableWrapper
+          position={{ x: window.innerWidth - 20, y: window.innerHeight - 100 }}
+          draggable={false}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+        >
+          <AddButton onAddWidget={handleAddWidget} />
+        </DraggableWrapper>
+      </div>
 
-      {/* Expand/Collapse Button */}
       <DraggableWrapper
         position={{ x: -30, y: window.innerHeight - 60 }}
         draggable={false}
@@ -132,7 +138,6 @@ const App = () => {
         <ExpandCollapseButton collapsed={collapsed} toggleCollapse={toggleCollapse} />
       </DraggableWrapper>
 
-      {/* Edit Button Container */}
       <div
         style={{
           opacity: collapsed ? 0 : 1,
@@ -151,7 +156,6 @@ const App = () => {
         </DraggableWrapper>
       </div>
 
-      {/* Widgets Container */}
       <div
         style={{
           opacity: collapsed ? 0 : 1,

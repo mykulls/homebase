@@ -11,11 +11,7 @@ function ExpandCollapseButton({ collapsed, toggleCollapse }: ExpandCollapseButto
     <div className="expand-collapse-container">
       <button className="expand-collapse-button" onClick={toggleCollapse}>
         <span className="expand-collapse-caret">^</span>
-        {collapsed ? (
-          <span className="expand-collapse-icon">+</span> // Icon for expand
-        ) : (
-          <span className="expand-collapse-icon">−</span> // Icon for collapse
-        )}
+        {collapsed ? <span className="expand-collapse-icon">+</span> : <span className="expand-collapse-icon">−</span>}
       </button>
     </div>
   );
