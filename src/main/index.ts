@@ -1,7 +1,7 @@
 import { app, BrowserWindow, ipcMain } from "electron";
 import { join } from "path";
 
-const devMode = false;
+const devMode = true;
 
 const createWindow = () => {
   const win = new BrowserWindow({
