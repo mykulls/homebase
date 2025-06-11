@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import "./DraggableWrapper.css";
 
 interface DraggableWrapperProps {
   children: React.ReactNode;
@@ -10,13 +11,16 @@ interface DraggableWrapperProps {
   onPositionChange?: (position: { x: number; y: number }) => void;
   onDragStart?: () => void;
   onDragEnd?: () => void;
-  onDimensionsChange?: (dimensions: { width: number; height: number }) => void;
+  onDimensionsChange?: (final: boolean, dimensions: { width: number; height: number }) => void;
+  dimensions?: { width: number; height: number };
+  isEditMode?: boolean;
+  onDelete?: () => void;
 }
 
 function DraggableWrapper({
   children,
   position,
-  draggable = true, // Default to true
+  draggable = true,
   collapsed = false,
   onMouseEnter = () => {},
   onMouseLeave = () => {},
@@ -24,8 +28,12 @@ function DraggableWrapper({
   onDragStart = () => {},
   onDragEnd = () => {},
   onDimensionsChange = () => {},
+  dimensions = { width: 0, height: 0 },
+  isEditMode = false,
+  onDelete = () => {},
 }: DraggableWrapperProps) {
   const [dragging, setDragging] = useState(false);
+  const [resizing, setResizing] = useState(false);
   const offsetRef = useRef({ x: 0, y: 0 });
   const wrapperRef = useRef<HTMLDivElement>(null);
 
@@ -37,17 +45,44 @@ function DraggableWrapper({
     onDragStart = () => {};
     onDragEnd = () => {};
     onDimensionsChange = () => {};
+    onDelete = () => {};
   }
 
   useEffect(() => {
-    if (draggable && wrapperRef.current) {
+    const handleResize = (e: MouseEvent) => {
+      if (!resizing || !wrapperRef.current) return;
+
       const rect = wrapperRef.current.getBoundingClientRect();
-      onDimensionsChange({ width: rect.width, height: rect.height }); // Pass dimensions upwards
+      const newHeight = Math.max(100, e.clientY - rect.top); // Minimum height of 100px
+
+      onDimensionsChange(false, { width: rect.width, height: newHeight });
+    };
+
+    const handleResizeEnd = () => {
+      if (resizing) {
+        setResizing(false);
+
+        // Snap height to the closest option (half height or full height)
+        if (wrapperRef.current) {
+          const rect = wrapperRef.current.getBoundingClientRect();
+          onDimensionsChange(true, { width: rect.width, height: rect.height });
+        }
+      }
+    };
+
+    if (resizing) {
+      document.addEventListener("mousemove", handleResize);
+      document.addEventListener("mouseup", handleResizeEnd);
     }
-  }, [onDimensionsChange]);
+
+    return () => {
+      document.removeEventListener("mousemove", handleResize);
+      document.removeEventListener("mouseup", handleResizeEnd);
+    };
+  }, [resizing, onDimensionsChange]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!draggable) return; // Prevent dragging if not draggable
+    if (!draggable || !isEditMode) return; // Prevent dragging if not draggable
 
     const target = e.target as HTMLElement;
     const tag = target.tagName.toLowerCase();
@@ -61,51 +96,101 @@ function DraggableWrapper({
       y: e.clientY - rect.top,
     };
     setDragging(true);
-    onDragStart(); // Notify SnapContainer that dragging has started
+    onDragStart();
     e.stopPropagation();
     e.preventDefault();
   };
 
-  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!draggable) return; // Prevent dragging if not draggable
-
-    if (!dragging || !draggable) return;
-    onPositionChange({
-      x: e.clientX - offsetRef.current.x,
-      y: e.clientY - offsetRef.current.y,
-    });
-  };
-
-  const handleMouseUp = () => {
-    if (!draggable) return; // Prevent dragging if not draggable
-
-    if (dragging) {
-      setDragging(false);
-      onDragEnd(); // Notify SnapContainer that dragging has ended
-    }
+  const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
+    setResizing(true);
+    e.stopPropagation();
+    e.preventDefault();
   };
 
   return (
     <div
-      ref={wrapperRef} // Attach ref to the wrapper
+      ref={wrapperRef}
       className="draggable"
       style={{
-        display: "flex",
         position: "absolute",
         left: position.x,
         top: position.y,
+        width: `${dimensions.width}px`,
+        height: `${dimensions.height}px`,
         userSelect: "none",
-        cursor: draggable && dragging ? "grabbing" : draggable ? "grab" : "default",
-        opacity: dragging ? 0.5 : 1, // Transparent view while dragging
-        transition: dragging ? "none" : "all 0.2s ease-out", // Smooth snapping
+        cursor: dragging ? "grabbing" : draggable && isEditMode ? "grab" : "default",
+        background:
+          !draggable || dragging || resizing
+            ? "linear-gradient(69deg, rgba(255, 255, 255, 0.25) 52%, rgba(255, 255, 255, 0.1) 97%)"
+            : "linear-gradient(69deg, rgba(255, 255, 255, 0.25) 12%, rgba(255, 255, 255, 0.1) 77%)",
+        // reduce transparency when dragging
+        transition: dragging || resizing ? "none" : "all 0.2s ease-out",
       }}
       onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
+      onMouseMove={(e) => {
+        if (dragging) {
+          onPositionChange({
+            x: e.clientX - offsetRef.current.x,
+            y: e.clientY - offsetRef.current.y,
+          });
+        }
+      }}
+      onMouseUp={() => {
+        if (dragging) {
+          setDragging(false);
+          onDragEnd();
+        }
+      }}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
     >
+      {isEditMode && draggable && !collapsed && (
+        <div
+          style={{
+            position: "absolute",
+            top: -3,
+            left: -3,
+            width: "24px",
+            height: "24px",
+            cursor: "pointer",
+            background: "#dc3545",
+            color: "white",
+            borderRadius: "50%",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontSize: "16px",
+            fontWeight: "bold",
+            zIndex: 1000,
+            boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete?.();
+          }}
+        >
+          ×
+        </div>
+      )}
+
       {children}
+
+      {isEditMode && draggable && !collapsed && (
+        <div
+          style={{
+            position: "absolute",
+            bottom: -3,
+            right: -3,
+            width: "16px",
+            height: "16px",
+            cursor: "nwse-resize",
+            borderRight: "6px solid grey",
+            borderBottom: "6px solid grey",
+            borderRadius: "3px",
+          }}
+          onMouseDown={handleResizeStart}
+        />
+      )}
     </div>
   );
 }

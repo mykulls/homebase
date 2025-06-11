@@ -1,0 +1,78 @@
+.add-button-container {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  position: relative;
+  /* translate: -400px; /* devMode */
+}
+
+.add-button-container:hover .add-button {
+  z-index: 1;
+  transform: translateX(-30px);
+  transition: transform 0.3s ease;
+}
+
+.add-button-container:hover .add-caret {
+  display: none;
+}
+
+.add-button-container:hover .add-icon {
+  display: flex;
+}
+
+.add-button {
+  width: 50px;
+  height: 50px;
+  background-color: #28a745;
+  border: none;
+  color: #fff;
+  border-radius: 16px 0 0 16px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: all 0.2s ease;
+}
+
+.add-icon {
+  display: none;
+  font-size: 24px;
+  transition: all 0.2s ease;
+}
+
+.add-caret {
+  display: flex;
+  transition: all 0.2s ease;
+  rotate: -90deg;
+  translate: -10px;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.add-menu {
+  position: absolute;
+  left: -200px;
+  top: 0;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 1000;
+}
+
+.add-option {
+  padding: 8px 16px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.add-option:hover {
+  background-color: #f0f0f0;
+}

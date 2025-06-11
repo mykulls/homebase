@@ -1,6 +1,10 @@
 import React, { useState, useRef, useEffect, FormEvent } from "react";
 
-function YouTubePlayerWithControls() {
+interface YoutubePlayerProps {
+  audioOnly?: boolean;
+}
+
+function YoutubePlayer({ audioOnly = false }: YoutubePlayerProps) {
   const [videoId, setVideoId] = useState<string>("");
   const [input, setInput] = useState<string>("");
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -96,6 +100,8 @@ function YouTubePlayerWithControls() {
         <>
           <div
             style={{
+              display: audioOnly ? "none" : "flex",
+              opacity: audioOnly ? 0 : 1,
               position: "relative",
               width: `${DEFAULT_WIDTH}px`,
               height: `${DEFAULT_HEIGHT}px`,
@@ -129,4 +135,4 @@ function YouTubePlayerWithControls() {
   );
 }
 
-export default YouTubePlayerWithControls;
+export default YoutubePlayer;

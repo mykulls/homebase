@@ -16,8 +16,5 @@ export default defineConfig({
       },
     },
   },
-  // Optionally set renderer config if you're using one
-  renderer: {
-    // vite config for renderer
-  },
+  renderer: {},
 });

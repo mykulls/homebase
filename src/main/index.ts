@@ -1,10 +1,33 @@
-import { app, BrowserWindow, ipcMain } from "electron";
+import { app, components, BrowserWindow, ipcMain, shell } from "electron";
 import { join } from "path";
+import { createServer } from "http";
 
 const devMode = false;
+let mainWindow: BrowserWindow | null = null;
+
+// Create HTTP server for Spotify callback
+const server = createServer((req, res) => {
+  if (req.url?.startsWith("/callback")) {
+    const urlParams = new URLSearchParams(req.url.split("?")[1]);
+    const code = urlParams.get("code");
+    const state = urlParams.get("state");
+
+    // Send the auth data to the renderer
+    if (mainWindow && code && state) {
+      mainWindow.webContents.send("spotify-callback", { code, state });
+    }
+
+    // Send a response to close the window
+    res.writeHead(200, { "Content-Type": "text/html" });
+    res.end("<script>window.close()</script>");
+  } else {
+    res.writeHead(404);
+    res.end();
+  }
+});
 
 const createWindow = () => {
-  const win = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 2560,
     height: 1440,
     frame: false,
@@ -19,21 +42,38 @@ const createWindow = () => {
     },
   });
 
-  win.loadFile(join(__dirname, "../renderer/index.html"));
+  // Start the server on port 3000
+  server.listen(3000, () => {
+    console.log("Callback server listening on port 3000");
+  });
+
+  // win.setBackgroundMaterial("acrylic");
+
+  mainWindow.loadFile(join(__dirname, "../renderer/index.html"));
 
   if (devMode) {
-    win.webContents.openDevTools();
+    mainWindow.webContents.openDevTools();
   } else {
     // Ignore all mouse events initially
-    win.setIgnoreMouseEvents(true, { forward: true });
+    mainWindow.setIgnoreMouseEvents(true, { forward: true });
 
     // Listen to toggle when mouse is over a clickable area
     ipcMain.on("set-ignore-mouse-events", (event, ignore) => {
-      win.setIgnoreMouseEvents(ignore, { forward: true });
+      mainWindow?.setIgnoreMouseEvents(ignore, { forward: true });
     });
   }
 };
 
-app.whenReady().then(() => {
+ipcMain.on("open-external", (_, url) => {
+  shell.openExternal(url);
+});
+
+app.on("will-quit", () => {
+  server.close();
+});
+
+app.whenReady().then(async () => {
+  await components.whenReady();
+  // console.log("components ready:", components.status());
   createWindow();
 });
