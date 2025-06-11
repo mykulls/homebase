@@ -18,36 +18,55 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
   const [isAuthorized, setIsAuthorized] = useState(false);
 
   const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
+  const clientSecret = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET;
   const redirectUri = import.meta.env.VITE_SPOTIFY_REDIRECT_URI;
 
   useEffect(() => {
-    // Check if we're returning from authorization
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get("code");
-    const state = urlParams.get("state");
-    const storedState = localStorage.getItem("spotify_auth_state");
-    const storedCodeVerifier = localStorage.getItem("spotify_code_verifier");
+    // Listen for OAuth callback from main process
+    window.electron?.onSpotifyCallback((data) => {
+      const { code, state } = data;
+      const storedState = localStorage.getItem("spotify_auth_state");
+      const storedCodeVerifier = localStorage.getItem("spotify_code_verifier");
 
-    if (code && state && storedState === state && storedCodeVerifier) {
-      exchangeCodeForToken(code, storedCodeVerifier);
+      if (state && storedState === state && storedCodeVerifier) {
+        exchangeCodeForToken(code, storedCodeVerifier);
+      }
+    });
+
+    // Check for existing token
+    const savedToken = localStorage.getItem("spotify_access_token");
+    if (savedToken) {
+      setAccessToken(savedToken);
+      setIsAuthorized(true);
     }
   }, []);
 
   const exchangeCodeForToken = async (code: string, codeVerifier: string) => {
     try {
-      const response = await fetch("https://accounts.spotify.com/api/token", {
+      const tokenUrl = "https://accounts.spotify.com/api/token";
+      const payload = {
+        grant_type: "authorization_code",
+        code: code,
+        redirect_uri: redirectUri, // Hardcode this to ensure it matches exactly
+        code_verifier: codeVerifier,
+      };
+
+      console.log("Token request payload:", payload); // Debug logging
+
+      const response = await fetch(tokenUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded",
+          Authorization: `Basic ${window.btoa(`${clientId}:${clientSecret}`)}`,
         },
-        body: new URLSearchParams({
-          client_id: clientId,
-          grant_type: "authorization_code",
-          code,
-          redirect_uri: redirectUri,
-          code_verifier: codeVerifier,
-        }),
+        body: new URLSearchParams(payload).toString(),
       });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("Token exchange failed:", response.status, errorText);
+        return;
+      }
 
       const data = await response.json();
       if (data.access_token) {
@@ -79,7 +98,8 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
       code_challenge: codeChallenge,
     });
 
-    window.location.href = `https://accounts.spotify.com/authorize?${params.toString()}`;
+    // Open auth in default browser instead of new window
+    window.electron?.openExternal(`https://accounts.spotify.com/authorize?${params.toString()}`);
   };
 
   // Add polling for current track

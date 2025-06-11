@@ -4,17 +4,14 @@ export const generateRandomString = (length: number) => {
   return values.reduce((acc, x) => acc + possible[x % possible.length], "");
 };
 
-export const sha256 = async (plain: string) => {
+export const sha256 = async (plain) => {
   const encoder = new TextEncoder();
   const data = encoder.encode(plain);
-  const hash = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(hash))
-    .map((x) => x.toString(16).padStart(2, "0"))
-    .join("");
+  return crypto.subtle.digest("SHA-256", data);
 };
 
-export const base64encode = (input: string) => {
-  return btoa(String.fromCharCode(...new Uint8Array(input.split("").map((c) => c.charCodeAt(0)))))
+export const base64encode = (input) => {
+  return btoa(String.fromCharCode(...new Uint8Array(input)))
     .replace(/=/g, "")
     .replace(/\+/g, "-")
     .replace(/\//g, "_");
