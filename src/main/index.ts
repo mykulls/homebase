@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, shell } from "electron";
+import { app, components, BrowserWindow, ipcMain, shell } from "electron";
 import { join } from "path";
 import { createServer } from "http";
 
@@ -74,6 +74,8 @@ app.on("will-quit", () => {
   server.close();
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  await components.whenReady();
+  console.log("components ready:", components.status());
   createWindow();
 });
