@@ -9,6 +9,7 @@ interface CurrentTrack {
   id: string;
   name: string;
   artist: string;
+  duration_ms: number;
 }
 
 interface Device {
@@ -18,6 +19,12 @@ interface Device {
   type: string;
 }
 
+function formatTime(ms: number) {
+  const min = Math.floor(ms / 60000);
+  const sec = Math.floor((ms % 60000) / 1000);
+  return `${min}:${sec.toString().padStart(2, "0")}`;
+}
+
 function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
   const [currentTrack, setCurrentTrack] = useState<CurrentTrack | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -25,15 +32,18 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [devices, setDevices] = useState<Device[]>([]);
   const [activeDevice, setActiveDevice] = useState<Device | null>(null);
-  const [player, setPlayer] = useState<Spotify.Player | null>(null);
-  const [webPlaybackDeviceId, setWebPlaybackDeviceId] = useState<string>("");
+  const [progressMs, setProgressMs] = useState(0);
+  const [seeking, setSeeking] = useState(false);
+  const [seekValue, setSeekValue] = useState<number | null>(null);
+  const [volume, setVolume] = useState(50);
+  const [pendingVolume, setPendingVolume] = useState<number | null>(null);
+  const [volumeChanging, setVolumeChanging] = useState(false);
 
   const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
   const clientSecret = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET;
   const redirectUri = import.meta.env.VITE_SPOTIFY_REDIRECT_URI;
 
   useEffect(() => {
-    // Listen for OAuth callback from main process
     window.electron?.onSpotifyCallback((data) => {
       const { code, state } = data;
       const storedState = localStorage.getItem("spotify_auth_state");
@@ -55,7 +65,6 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
       })
         .then((res) => {
           if (res.status === 401) {
-            // Token is invalid/expired
             localStorage.removeItem("spotify_access_token");
             setAccessToken(null);
             setIsAuthorized(false);
@@ -78,11 +87,9 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
       const payload = {
         grant_type: "authorization_code",
         code: code,
-        redirect_uri: redirectUri, // Hardcode this to ensure it matches exactly
+        redirect_uri: redirectUri,
         code_verifier: codeVerifier,
       };
-
-      console.log("Token request payload:", payload); // Debug logging
 
       const response = await fetch(tokenUrl, {
         method: "POST",
@@ -115,7 +122,6 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
     const codeVerifier = generateRandomString(64);
     const codeChallenge = base64encode(await sha256(codeVerifier));
 
-    // Store state and code verifier
     localStorage.setItem("spotify_auth_state", state);
     localStorage.setItem("spotify_code_verifier", codeVerifier);
 
@@ -129,11 +135,9 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
       code_challenge: codeChallenge,
     });
 
-    // Open auth in default browser instead of new window
     window.electron?.openExternal(`https://accounts.spotify.com/authorize?${params.toString()}`);
   };
 
-  // Modify the polling effect
   useEffect(() => {
     if (!accessToken) return;
 
@@ -145,38 +149,39 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
           },
         });
 
+        // Do NOT clear currentTrack on 204; just set isPlaying to false
         if (response.status === 204) {
-          // Don't clear current track, just set isPlaying to false
           setIsPlaying(false);
           return;
         }
 
         const data = await response.json();
 
-        // Update track info only if it changed
-        if (data?.item?.id !== currentTrack?.id) {
+        if (data?.item) {
           setCurrentTrack({
             id: data.item.id,
             name: data.item.name,
             artist: data.item.artists[0].name,
+            duration_ms: data.item.duration_ms,
           });
+          setProgressMs(data.progress_ms || 0);
         }
 
-        // Always update playing state
         setIsPlaying(data.is_playing);
+        if (typeof data.device?.volume_percent === "number") {
+          setVolume(data.device.volume_percent);
+        }
       } catch (error) {
         console.error("Error fetching current track:", error);
       }
     };
 
-    // Poll more frequently to better sync play state
     const interval = setInterval(fetchCurrentTrack, 1000);
     fetchCurrentTrack();
 
     return () => clearInterval(interval);
-  }, [accessToken, currentTrack?.id]);
+  }, [accessToken]);
 
-  // Add this new effect to fetch devices
   useEffect(() => {
     if (!accessToken) return;
 
@@ -197,15 +202,13 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
       }
     };
 
-    // Poll for devices every 5 seconds
     const interval = setInterval(fetchDevices, 5000);
     fetchDevices();
 
     return () => clearInterval(interval);
   }, [accessToken]);
 
-  // Add this new function to transfer playback
-  const transferPlayback = async (deviceId: string) => {
+  const transferPlayback = async (deviceId: string, play: boolean = true) => {
     if (!accessToken) return;
 
     try {
@@ -217,7 +220,7 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
         },
         body: JSON.stringify({
           device_ids: [deviceId],
-          play: isPlaying, // Maintain current playing state
+          play,
         }),
       });
     } catch (error) {
@@ -225,84 +228,104 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
     }
   };
 
-  // Add Web Playback SDK initialization
-  useEffect(() => {
-    if (!accessToken) return;
-
-    // Create script element for Spotify SDK
-    const script = document.createElement("script");
-    script.src = "https://sdk.scdn.co/spotify-player.js";
-    script.async = true;
-    // Append script to document
-    document.body.appendChild(script);
-
-    // Define callback before adding script
-    window.onSpotifyWebPlaybackSDKReady = () => {
-      const player = new window.Spotify.Player({
-        name: "Homebase Web Player",
-        getOAuthToken: (cb) => {
-          cb(accessToken);
-        },
-        volume: 0.5,
-      });
-
-      player.addListener("ready", ({ device_id }) => {
-        console.log("Ready with Device ID", device_id);
-        setWebPlaybackDeviceId(device_id);
-        setPlayer(player);
-      });
-
-      player.addListener("not_ready", ({ device_id }) => {
-        console.log("Device ID has gone offline", device_id);
-      });
-
-      player.addListener("player_state_changed", (state) => {
-        if (!state) return;
-
-        setIsPlaying(!state.paused);
-        if (state.track_window.current_track) {
-          setCurrentTrack({
-            id: state.track_window.current_track.id,
-            name: state.track_window.current_track.name,
-            artist: state.track_window.current_track.artists[0].name,
-          });
-        }
-      });
-
-      player.connect();
-    };
-
-    // Cleanup function to remove script and disconnect player
-    return () => {
-      if (player) {
-        player.disconnect();
-      }
-    };
-  }, [accessToken]);
-
-  // Update handlePlayPause to transfer playback to web player
+  // Play/pause logic: switch to computer if available, else control active device
   const handlePlayPause = async () => {
-    if (!accessToken || !webPlaybackDeviceId) return;
-
-    try {
-      // If we're not the active device, transfer playback to web player first
-      if (activeDevice?.id !== webPlaybackDeviceId) {
-        await transferPlayback(webPlaybackDeviceId);
-        // Wait a brief moment for the transfer to complete
-        await new Promise((resolve) => setTimeout(resolve, 300));
-      }
-
-      // Now use the Web Playback SDK controls
-      if (player) {
-        if (isPlaying) {
-          await player.pause();
-        } else {
-          await player.resume();
-        }
-      }
-    } catch (error) {
-      console.error("Error controlling playback:", error);
+    if (!accessToken) return;
+    if (!activeDevice) {
+      console.warn("No active device found");
+      return;
     }
+
+    let targetDeviceId = activeDevice?.id;
+    let shouldTransfer = false;
+    // switch to computer on play (past state was paused = !isPlaying)
+    if (!isPlaying) {
+      // Try to find a computer device (type === "Computer")
+      const computerDevice = devices.find((d) => d.type === "Computer");
+
+      if (computerDevice && !computerDevice.is_active) {
+        targetDeviceId = computerDevice.id;
+        shouldTransfer = true;
+      }
+
+      if (shouldTransfer && targetDeviceId) {
+        await transferPlayback(targetDeviceId, true);
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
+
+    const endpoint = isPlaying
+      ? "https://api.spotify.com/v1/me/player/pause"
+      : "https://api.spotify.com/v1/me/player/play";
+
+    if (targetDeviceId) {
+      await fetch(endpoint + (targetDeviceId ? `?device_id=${targetDeviceId}` : ""), {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+    }
+  };
+
+  const handleNext = async () => {
+    if (!accessToken || !activeDevice) return;
+    await fetch(`https://api.spotify.com/v1/me/player/next?device_id=${activeDevice.id}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  };
+
+  const handlePrevious = async () => {
+    if (!accessToken || !activeDevice) return;
+    await fetch(`https://api.spotify.com/v1/me/player/previous?device_id=${activeDevice.id}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  };
+
+  const handleSeekChange = (ms: number) => {
+    setSeeking(true);
+    setSeekValue(ms);
+    setProgressMs(ms);
+  };
+
+  const handleSeekCommit = async () => {
+    if (!accessToken || !activeDevice || seekValue === null) {
+      setSeeking(false);
+      return;
+    }
+    await fetch(`https://api.spotify.com/v1/me/player/seek?position_ms=${seekValue}&device_id=${activeDevice.id}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    setProgressMs(seekValue);
+    setSeeking(false);
+    setSeekValue(null);
+  };
+
+  const handleVolumeSliderChange = (value: number) => {
+    setVolumeChanging(true);
+    setPendingVolume(value);
+    setVolume(value);
+  };
+
+  const handleVolumeCommit = async () => {
+    if (!accessToken || !activeDevice || pendingVolume === null) {
+      setVolumeChanging(false);
+      return;
+    }
+    await fetch(
+      `https://api.spotify.com/v1/me/player/volume?volume_percent=${pendingVolume}&device_id=${activeDevice.id}`,
+      {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+    setVolume(pendingVolume);
+    setVolumeChanging(false);
+    setPendingVolume(null);
   };
 
   return (
@@ -334,15 +357,52 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
                 </select>
               </div>
 
-              <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
+              <div style={{ display: "flex", gap: "12px", justifyContent: "center", alignItems: "center" }}>
+                <button onClick={handlePrevious} style={{ padding: "8px 12px" }}>
+                  ⏮
+                </button>
                 <button onClick={handlePlayPause} style={{ padding: "8px 12px" }}>
                   {isPlaying ? "Pause" : "Play"}
                 </button>
+                <button onClick={handleNext} style={{ padding: "8px 12px" }}>
+                  ⏭
+                </button>
+              </div>
+
+              <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                <span>{formatTime(progressMs)}</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={currentTrack.duration_ms}
+                  value={seeking && seekValue !== null ? seekValue : progressMs}
+                  onChange={(e) => handleSeekChange(Number(e.target.value))}
+                  onMouseUp={handleSeekCommit}
+                  onTouchEnd={handleSeekCommit}
+                  style={{ flex: 1 }}
+                />
+                <span>{formatTime(currentTrack.duration_ms)}</span>
+              </div>
+
+              <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                <span>🔊</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={volumeChanging && pendingVolume !== null ? pendingVolume : volume}
+                  onChange={(e) => handleVolumeSliderChange(Number(e.target.value))}
+                  onMouseUp={handleVolumeCommit}
+                  onTouchEnd={handleVolumeCommit}
+                  style={{ flex: 1 }}
+                />
+                <span>{volume}</span>
               </div>
             </>
           ) : (
             <div style={{ textAlign: "center", padding: "20px" }}>
-              Open Spotify on any device to see your currently playing track
+              {/* Always show last known track if available */}
+              {currentTrack === null ? "Open Spotify on any device to see your currently playing track" : null}
             </div>
           )}
         </>

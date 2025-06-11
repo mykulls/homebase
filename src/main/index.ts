@@ -64,18 +64,16 @@ const createWindow = () => {
   }
 };
 
-// Add handler for opening URLs in default browser
 ipcMain.on("open-external", (_, url) => {
   shell.openExternal(url);
 });
 
-// Clean up server on app quit
 app.on("will-quit", () => {
   server.close();
 });
 
 app.whenReady().then(async () => {
   await components.whenReady();
-  console.log("components ready:", components.status());
+  // console.log("components ready:", components.status());
   createWindow();
 });
