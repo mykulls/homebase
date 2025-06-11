@@ -2,7 +2,6 @@ export {};
 
 declare global {
   interface Window {
-    gapi: any;
     electron?: {
       setIgnoreMouseEvents: (ignore: boolean) => void;
       onSpotifyCallback: (callback: (data: { code: string; state: string }) => void) => void;

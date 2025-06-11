@@ -9,20 +9,41 @@ interface CurrentTrack {
   id: string;
   name: string;
   artist: string;
-  isPlaying: boolean;
+  duration_ms: number;
+}
+
+interface Device {
+  id: string;
+  name: string;
+  is_active: boolean;
+  type: string;
+}
+
+function formatTime(ms: number) {
+  const min = Math.floor(ms / 60000);
+  const sec = Math.floor((ms % 60000) / 1000);
+  return `${min}:${sec.toString().padStart(2, "0")}`;
 }
 
 function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
   const [currentTrack, setCurrentTrack] = useState<CurrentTrack | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isAuthorized, setIsAuthorized] = useState(false);
+  const [devices, setDevices] = useState<Device[]>([]);
+  const [activeDevice, setActiveDevice] = useState<Device | null>(null);
+  const [progressMs, setProgressMs] = useState(0);
+  const [seeking, setSeeking] = useState(false);
+  const [seekValue, setSeekValue] = useState<number | null>(null);
+  const [volume, setVolume] = useState(50);
+  const [pendingVolume, setPendingVolume] = useState<number | null>(null);
+  const [volumeChanging, setVolumeChanging] = useState(false);
 
   const clientId = import.meta.env.VITE_SPOTIFY_CLIENT_ID;
   const clientSecret = import.meta.env.VITE_SPOTIFY_CLIENT_SECRET;
   const redirectUri = import.meta.env.VITE_SPOTIFY_REDIRECT_URI;
 
   useEffect(() => {
-    // Listen for OAuth callback from main process
     window.electron?.onSpotifyCallback((data) => {
       const { code, state } = data;
       const storedState = localStorage.getItem("spotify_auth_state");
@@ -36,8 +57,27 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
     // Check for existing token
     const savedToken = localStorage.getItem("spotify_access_token");
     if (savedToken) {
-      setAccessToken(savedToken);
-      setIsAuthorized(true);
+      // Validate token by making a test request
+      fetch("https://api.spotify.com/v1/me", {
+        headers: {
+          Authorization: `Bearer ${savedToken}`,
+        },
+      })
+        .then((res) => {
+          if (res.status === 401) {
+            localStorage.removeItem("spotify_access_token");
+            setAccessToken(null);
+            setIsAuthorized(false);
+          } else if (res.ok) {
+            setAccessToken(savedToken);
+            setIsAuthorized(true);
+          }
+        })
+        .catch(() => {
+          localStorage.removeItem("spotify_access_token");
+          setAccessToken(null);
+          setIsAuthorized(false);
+        });
     }
   }, []);
 
@@ -47,11 +87,9 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
       const payload = {
         grant_type: "authorization_code",
         code: code,
-        redirect_uri: redirectUri, // Hardcode this to ensure it matches exactly
+        redirect_uri: redirectUri,
         code_verifier: codeVerifier,
       };
-
-      console.log("Token request payload:", payload); // Debug logging
 
       const response = await fetch(tokenUrl, {
         method: "POST",
@@ -84,7 +122,6 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
     const codeVerifier = generateRandomString(64);
     const codeChallenge = base64encode(await sha256(codeVerifier));
 
-    // Store state and code verifier
     localStorage.setItem("spotify_auth_state", state);
     localStorage.setItem("spotify_code_verifier", codeVerifier);
 
@@ -93,16 +130,14 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
       response_type: "code",
       redirect_uri: redirectUri,
       state: state,
-      scope: "user-read-playback-state user-modify-playback-state",
+      scope: "user-read-playback-state user-modify-playback-state user-read-email user-read-private streaming",
       code_challenge_method: "S256",
       code_challenge: codeChallenge,
     });
 
-    // Open auth in default browser instead of new window
     window.electron?.openExternal(`https://accounts.spotify.com/authorize?${params.toString()}`);
   };
 
-  // Add polling for current track
   useEffect(() => {
     if (!accessToken) return;
 
@@ -114,46 +149,183 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
           },
         });
 
+        // Do NOT clear currentTrack on 204; just set isPlaying to false
         if (response.status === 204) {
-          setCurrentTrack(null);
+          setIsPlaying(false);
           return;
         }
 
         const data = await response.json();
-        if (data && data.item) {
+
+        if (data?.item) {
           setCurrentTrack({
             id: data.item.id,
             name: data.item.name,
             artist: data.item.artists[0].name,
-            isPlaying: data.is_playing,
+            duration_ms: data.item.duration_ms,
           });
+          setProgressMs(data.progress_ms || 0);
+        }
+
+        setIsPlaying(data.is_playing);
+        if (typeof data.device?.volume_percent === "number") {
+          setVolume(data.device.volume_percent);
         }
       } catch (error) {
         console.error("Error fetching current track:", error);
       }
     };
 
-    // Poll every 3 seconds
-    const interval = setInterval(fetchCurrentTrack, 3000);
-    fetchCurrentTrack(); // Initial fetch
+    const interval = setInterval(fetchCurrentTrack, 1000);
+    fetchCurrentTrack();
 
     return () => clearInterval(interval);
   }, [accessToken]);
 
-  const handlePlayPause = async () => {
+  useEffect(() => {
+    if (!accessToken) return;
+
+    const fetchDevices = async () => {
+      try {
+        const response = await fetch("https://api.spotify.com/v1/me/player/devices", {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+          },
+        });
+
+        const data = await response.json();
+        setDevices(data.devices);
+        const active = data.devices.find((d: Device) => d.is_active);
+        if (active) setActiveDevice(active);
+      } catch (error) {
+        console.error("Error fetching devices:", error);
+      }
+    };
+
+    const interval = setInterval(fetchDevices, 5000);
+    fetchDevices();
+
+    return () => clearInterval(interval);
+  }, [accessToken]);
+
+  const transferPlayback = async (deviceId: string, play: boolean = true) => {
     if (!accessToken) return;
 
     try {
-      const endpoint = currentTrack?.isPlaying ? "pause" : "play";
-      await fetch(`https://api.spotify.com/v1/me/player/${endpoint}`, {
+      await fetch("https://api.spotify.com/v1/me/player", {
         method: "PUT",
         headers: {
           Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
         },
+        body: JSON.stringify({
+          device_ids: [deviceId],
+          play,
+        }),
       });
     } catch (error) {
-      console.error("Error controlling playback:", error);
+      console.error("Error transferring playback:", error);
     }
+  };
+
+  // Play/pause logic: switch to computer if available, else control active device
+  const handlePlayPause = async () => {
+    if (!accessToken) return;
+    if (!activeDevice) {
+      console.warn("No active device found");
+      return;
+    }
+
+    let targetDeviceId = activeDevice?.id;
+    let shouldTransfer = false;
+    // switch to computer on play (past state was paused = !isPlaying)
+    if (!isPlaying) {
+      // Try to find a computer device (type === "Computer")
+      const computerDevice = devices.find((d) => d.type === "Computer");
+
+      if (computerDevice && !computerDevice.is_active) {
+        targetDeviceId = computerDevice.id;
+        shouldTransfer = true;
+      }
+
+      if (shouldTransfer && targetDeviceId) {
+        await transferPlayback(targetDeviceId, true);
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    }
+
+    const endpoint = isPlaying
+      ? "https://api.spotify.com/v1/me/player/pause"
+      : "https://api.spotify.com/v1/me/player/play";
+
+    if (targetDeviceId) {
+      await fetch(endpoint + (targetDeviceId ? `?device_id=${targetDeviceId}` : ""), {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+    }
+  };
+
+  const handleNext = async () => {
+    if (!accessToken || !activeDevice) return;
+    await fetch(`https://api.spotify.com/v1/me/player/next?device_id=${activeDevice.id}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  };
+
+  const handlePrevious = async () => {
+    if (!accessToken || !activeDevice) return;
+    await fetch(`https://api.spotify.com/v1/me/player/previous?device_id=${activeDevice.id}`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+  };
+
+  const handleSeekChange = (ms: number) => {
+    setSeeking(true);
+    setSeekValue(ms);
+    setProgressMs(ms);
+  };
+
+  const handleSeekCommit = async () => {
+    if (!accessToken || !activeDevice || seekValue === null) {
+      setSeeking(false);
+      return;
+    }
+    await fetch(`https://api.spotify.com/v1/me/player/seek?position_ms=${seekValue}&device_id=${activeDevice.id}`, {
+      method: "PUT",
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    setProgressMs(seekValue);
+    setSeeking(false);
+    setSeekValue(null);
+  };
+
+  const handleVolumeSliderChange = (value: number) => {
+    setVolumeChanging(true);
+    setPendingVolume(value);
+    setVolume(value);
+  };
+
+  const handleVolumeCommit = async () => {
+    if (!accessToken || !activeDevice || pendingVolume === null) {
+      setVolumeChanging(false);
+      return;
+    }
+    await fetch(
+      `https://api.spotify.com/v1/me/player/volume?volume_percent=${pendingVolume}&device_id=${activeDevice.id}`,
+      {
+        method: "PUT",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      }
+    );
+    setVolume(pendingVolume);
+    setVolumeChanging(false);
+    setPendingVolume(null);
   };
 
   return (
@@ -166,36 +338,72 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
         <>
           {currentTrack ? (
             <>
-              <div
-                style={{
-                  display: audioOnly ? "none" : "flex",
-                  opacity: audioOnly ? 0 : 1,
-                  position: "relative",
-                  width: "100%",
-                  height: "80px",
-                  marginBottom: "16px",
-                  border: "1px solid #ccc",
-                  borderRadius: "4px",
-                  overflow: "hidden",
-                }}
-              >
-                <iframe
-                  src={`https://open.spotify.com/embed/track/${currentTrack.id}`}
-                  width="100%"
-                  height="80"
-                  allow="encrypted-media"
-                  title="Spotify Player"
-                ></iframe>
+              <div style={{ marginBottom: "16px" }}>
+                <select
+                  value={activeDevice?.id || ""}
+                  onChange={(e) => transferPlayback(e.target.value)}
+                  style={{
+                    padding: "8px",
+                    width: "100%",
+                    marginBottom: "8px",
+                    borderRadius: "4px",
+                  }}
+                >
+                  {devices.map((device) => (
+                    <option key={device.id} value={device.id}>
+                      {device.name} {device.is_active ? "(Active)" : ""}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-                <button onClick={handlePlayPause} style={{ padding: "8px 12px" }}>
-                  {currentTrack.isPlaying ? "Pause" : "Play"}
+              <div style={{ display: "flex", gap: "12px", justifyContent: "center", alignItems: "center" }}>
+                <button onClick={handlePrevious} style={{ padding: "8px 12px" }}>
+                  ⏮
                 </button>
+                <button onClick={handlePlayPause} style={{ padding: "8px 12px" }}>
+                  {isPlaying ? "Pause" : "Play"}
+                </button>
+                <button onClick={handleNext} style={{ padding: "8px 12px" }}>
+                  ⏭
+                </button>
+              </div>
+
+              <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                <span>{formatTime(progressMs)}</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={currentTrack.duration_ms}
+                  value={seeking && seekValue !== null ? seekValue : progressMs}
+                  onChange={(e) => handleSeekChange(Number(e.target.value))}
+                  onMouseUp={handleSeekCommit}
+                  onTouchEnd={handleSeekCommit}
+                  style={{ flex: 1 }}
+                />
+                <span>{formatTime(currentTrack.duration_ms)}</span>
+              </div>
+
+              <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
+                <span>🔊</span>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  value={volumeChanging && pendingVolume !== null ? pendingVolume : volume}
+                  onChange={(e) => handleVolumeSliderChange(Number(e.target.value))}
+                  onMouseUp={handleVolumeCommit}
+                  onTouchEnd={handleVolumeCommit}
+                  style={{ flex: 1 }}
+                />
+                <span>{volume}</span>
               </div>
             </>
           ) : (
-            <div style={{ textAlign: "center", padding: "20px" }}>No track currently playing</div>
+            <div style={{ textAlign: "center", padding: "20px" }}>
+              {/* Always show last known track if available */}
+              {currentTrack === null ? "Open Spotify on any device to see your currently playing track" : null}
+            </div>
           )}
         </>
       )}
