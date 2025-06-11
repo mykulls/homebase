@@ -31,6 +31,8 @@ const App = () => {
     [Corner.BottomRight]: -1,
   });
   const [widgets, setWidgets] = useState<WidgetInfo[]>([]);
+  const [swapCorner, setSwapCorner] = useState<Corner | null>(null);
+  const [swapWidget, setSwapWidget] = useState<number | null>(null); // widget id of the widget being swapped
 
   useEffect(() => {
     window.electron?.setIgnoreMouseEvents(true);
@@ -78,14 +80,25 @@ const App = () => {
     if (currentCorner === nextCorner) return;
 
     const widgetId = corners[currentCorner];
-
     if (widgetId === -1) return;
-    setCorners((prev) => ({
-      ...prev,
-      [currentCorner]: -1,
-      [nextCorner]: widgetId,
-    }));
+    if (cornerOccupied(nextCorner)) {
+      const otherWidgetId = corners[nextCorner];
+      setCorners((prev) => ({
+        ...prev,
+        [currentCorner]: otherWidgetId,
+        [nextCorner]: widgetId,
+      }));
+      setSwapWidget(otherWidgetId);
+      setSwapCorner(currentCorner);
+    } else {
+      setCorners((prev) => ({
+        ...prev,
+        [currentCorner]: -1,
+        [nextCorner]: widgetId,
+      }));
+    }
   };
+
   const handleAddWidget = (type: WidgetType) => {
     const availableCorner = getNextAvailableCorner();
     const availableId = getNextAvailableId();
@@ -167,6 +180,11 @@ const App = () => {
           return (
             <SnapContainer
               key={`${widget.id}`}
+              newCorner={swapWidget !== null && swapWidget === widget.id ? swapCorner : null}
+              nullNewCorner={() => {
+                setSwapCorner(null);
+                setSwapWidget(null);
+              }}
               startCorner={widget.startCorner}
               onDragEnd={onDragEnd}
               onDelete={handleDeleteWidget}

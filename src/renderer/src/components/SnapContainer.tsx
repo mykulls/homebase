@@ -13,6 +13,8 @@ interface SnapContainerProps {
   onDragEnd: (corner: Corner, nextCorner: Corner) => void;
   onDelete: (corner: Corner) => void;
   cornerOccupied: (corner: Corner) => boolean;
+  newCorner: Corner | null;
+  nullNewCorner: () => void;
   children: (props: {
     position: { x: number; y: number };
     onPositionChange: (position: { x: number; y: number }) => void;
@@ -25,7 +27,15 @@ interface SnapContainerProps {
   }) => ReactNode;
 }
 
-function SnapContainer({ startCorner, onDragEnd, onDelete, cornerOccupied, children }: SnapContainerProps) {
+function SnapContainer({
+  startCorner,
+  onDragEnd,
+  onDelete,
+  cornerOccupied,
+  newCorner,
+  nullNewCorner,
+  children,
+}: SnapContainerProps) {
   const initWidth = window.innerWidth;
   const initHeight = window.innerHeight;
   const getCorners = (innerWidth: number, innerHeight: number, padding: number, width: number, height: number) => {
@@ -54,6 +64,16 @@ function SnapContainer({ startCorner, onDragEnd, onDelete, cornerOccupied, child
 
     setPosition(initialPosition[startCorner]);
   }, [startCorner]);
+
+  useEffect(() => {
+    if (newCorner === null) return;
+
+    const { innerWidth, innerHeight } = window;
+    const swapPosition = getCorners(innerWidth, innerHeight, padding, dimensions.width, dimensions.height);
+    setCorner(newCorner);
+    setPosition(swapPosition[newCorner]);
+    nullNewCorner();
+  }, [newCorner, dimensions]);
 
   const snapToCorner = (pos: { x: number; y: number }) => {
     const { innerWidth, innerHeight } = window;
@@ -88,20 +108,15 @@ function SnapContainer({ startCorner, onDragEnd, onDelete, cornerOccupied, child
 
   const handleDragStart = () => {
     setDragging(true);
+    nullNewCorner();
   };
 
   const handleDragEnd = () => {
     const { nextPos, nextCorner } = snapToCorner(position);
-    if (cornerOccupied(nextCorner)) {
-      const { innerWidth, innerHeight } = window;
-      const { width, height } = dimensions;
-      setPosition(getCorners(innerWidth, innerHeight, padding, width, height)[curCorner]);
-      onDragEnd(curCorner, curCorner);
-    } else {
-      setPosition(nextPos);
-      setCorner(nextCorner);
-      onDragEnd(curCorner, nextCorner);
-    }
+    nullNewCorner();
+    setPosition(nextPos);
+    setCorner(nextCorner);
+    onDragEnd(curCorner, nextCorner);
     setDragging(false);
   };
 
@@ -123,7 +138,7 @@ function SnapContainer({ startCorner, onDragEnd, onDelete, cornerOccupied, child
   };
 
   return (
-    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+    <div style={{ position: "relative", width: "100%", height: "100%", zIndex: dragging ? 1 : 0 }}>
       {dragging &&
         Object.values(Corner).map((corner) => {
           const { innerWidth, innerHeight } = window;
