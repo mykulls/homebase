@@ -4,8 +4,8 @@ import { Corner } from "./SnapContainer";
 
 interface DraggableWrapperProps {
   children: React.ReactNode;
-  bottom: boolean;
   position: { x: number; y: number };
+  bottom?: boolean;
   draggable?: boolean;
   collapsed?: boolean;
   onMouseEnter?: () => void;
@@ -21,10 +21,10 @@ interface DraggableWrapperProps {
 
 function DraggableWrapper({
   children,
-  bottom,
   position,
   draggable = true,
   collapsed = false,
+  bottom = false,
   onMouseEnter = () => {},
   onMouseLeave = () => {},
   onPositionChange = () => {},
