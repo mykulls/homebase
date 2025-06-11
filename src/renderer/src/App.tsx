@@ -12,18 +12,25 @@ import {
 import "./index.css";
 
 type CornerMap = {
-  [key in Corner]: WidgetType;
+  [key in Corner]: number;
+};
+
+type WidgetInfo = {
+  type: WidgetType;
+  id: number;
+  startCorner: Corner;
 };
 
 const App = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [corners, setCorners] = useState<CornerMap>({
-    [Corner.TopLeft]: WidgetType.None,
-    [Corner.TopRight]: WidgetType.None,
-    [Corner.BottomLeft]: WidgetType.None,
-    [Corner.BottomRight]: WidgetType.None,
+    [Corner.TopLeft]: -1,
+    [Corner.TopRight]: -1,
+    [Corner.BottomLeft]: -1,
+    [Corner.BottomRight]: -1,
   });
+  const [widgets, setWidgets] = useState<WidgetInfo[]>([]);
 
   useEffect(() => {
     window.electron?.setIgnoreMouseEvents(true);
@@ -41,139 +48,140 @@ const App = () => {
   };
 
   const toggleCollapse = () => {
-    setCollapsed((prev) => !prev); // Toggle the collapsed state
+    setCollapsed((prev) => !prev);
   };
 
   const toggleEditMode = () => {
-    setEditMode((prev) => !prev); // Toggle the edit mode
+    setEditMode((prev) => !prev);
   };
 
   const cornerOccupied = (corner: Corner) => {
-    return corners[corner] !== WidgetType.None;
+    return corners[corner] !== -1;
+  };
+
+  const getNextAvailableCorner = () => {
+    const cornerOrder = [Corner.TopLeft, Corner.TopRight, Corner.BottomRight, Corner.BottomLeft];
+    return cornerOrder.find((corner) => !cornerOccupied(corner)) || null;
+  };
+
+  const getNextAvailableId = () => {
+    for (let i = 0; i < 4; i++) {
+      if (widgets.find((w) => w.id === i) === undefined) {
+        return i;
+      }
+    }
+
+    return -1;
   };
 
   const onDragEnd = (currentCorner: Corner, nextCorner: Corner) => {
     if (currentCorner === nextCorner) return;
 
-    const widget = corners[currentCorner];
+    const widgetId = corners[currentCorner];
 
-    if (widget === WidgetType.None) return;
+    if (widgetId === -1) return;
     setCorners((prev) => ({
       ...prev,
-      [currentCorner]: WidgetType.None,
-      [nextCorner]: widget,
+      [currentCorner]: -1,
+      [nextCorner]: widgetId,
     }));
   };
   const handleAddWidget = (type: WidgetType) => {
-    const availableCorner = Object.values(Corner).find((corner) => !cornerOccupied(corner));
-    if (availableCorner) {
+    const availableCorner = getNextAvailableCorner();
+    const availableId = getNextAvailableId();
+    if (availableCorner && availableId !== -1) {
       setCorners((prev) => ({
         ...prev,
-        [availableCorner]: type,
+        [availableCorner]: availableId,
       }));
+      setWidgets((prev) => [...prev, { type, id: availableId, startCorner: availableCorner }]);
     } else {
       alert("All corners are occupied! Remove a widget to add a new one.");
     }
   };
 
   const handleDeleteWidget = (corner: Corner) => {
+    const widgetId = corners[corner];
     setCorners((prev) => ({
       ...prev,
-      [corner]: WidgetType.None,
+      [corner]: -1,
     }));
+    const newWidgets = widgets.filter((w) => w.id !== widgetId);
+    setWidgets(newWidgets);
   };
-
-  // Create memoized widgets that update when relevant props change
-  const memoizedWidgets = useMemo(() => {
-    return Object.entries(corners)
-      .map(([corner, type]) => {
-        if (type === WidgetType.None) return null;
-
-        return (
-          <SnapContainer
-            key={`${type}-${corner}`}
-            startCorner={corner as Corner}
-            onDragEnd={onDragEnd}
-            onDelete={handleDeleteWidget}
-            cornerOccupied={cornerOccupied}
-          >
-            {({
-              position,
-              onPositionChange,
-              onDragStart,
-              onDragEnd,
-              onDimensionsChange,
-              onDelete,
-              dimensions,
-              widgetSize,
-            }) => (
-              <DraggableWrapper
-                collapsed={collapsed}
-                position={position}
-                onPositionChange={onPositionChange}
-                onDragStart={onDragStart}
-                onDragEnd={onDragEnd}
-                onDimensionsChange={onDimensionsChange}
-                dimensions={dimensions}
-                onMouseEnter={handleMouseEnter}
-                onMouseLeave={handleMouseLeave}
-                isEditMode={editMode}
-                onDelete={onDelete}
-              >
-                <Widget audioOnly={widgetSize > 0} type={type} />
-              </DraggableWrapper>
-            )}
-          </SnapContainer>
-        );
-      })
-      .filter(Boolean);
-  }, [corners, collapsed, editMode, onDragEnd, handleDeleteWidget, cornerOccupied, handleMouseEnter, handleMouseLeave]);
 
   return (
     <div>
+      {/* Add Button */}
       <DraggableWrapper
-        position={{ x: window.innerWidth - 20, y: window.innerHeight - 100 }} // Bottom-left corner
-        draggable={false} // Make the button non-draggable
+        position={{ x: window.innerWidth - 20, y: window.innerHeight - 100 }}
+        draggable={false}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
         <AddButton onAddWidget={handleAddWidget} />
       </DraggableWrapper>
 
+      {/* Expand/Collapse Button */}
       <DraggableWrapper
-        position={{ x: -30, y: window.innerHeight - 60 }} // Bottom-left corner
-        draggable={false} // Make the button non-draggable
+        position={{ x: -30, y: window.innerHeight - 60 }}
+        draggable={false}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
       >
         <ExpandCollapseButton collapsed={collapsed} toggleCollapse={toggleCollapse} />
       </DraggableWrapper>
 
+      {/* Edit Button Container */}
       <div
         style={{
-          opacity: collapsed ? 0 : 1, // Animate opacity
-          transition: "opacity 0.2s ease", // Smooth transition
-          pointerEvents: collapsed ? "none" : "auto", // Disable interaction when collapsed
+          opacity: collapsed ? 0 : 1,
+          transition: "opacity 0.2s ease",
+          pointerEvents: collapsed ? "none" : "auto",
         }}
       >
         <DraggableWrapper
           collapsed={collapsed}
-          position={{ x: window.innerWidth - 20, y: window.innerHeight - 60 }} // Bottom-left corner
-          draggable={false} // Make the button non-draggable
+          position={{ x: window.innerWidth - 20, y: window.innerHeight - 60 }}
+          draggable={false}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
         >
           <EditButton isEditMode={editMode} toggleEditMode={toggleEditMode} />
         </DraggableWrapper>
       </div>
+
+      {/* Widgets Container */}
       <div
         style={{
-          opacity: collapsed ? 0 : 1, // Animate opacity
-          transition: "opacity 0.2s ease", // Smooth transition
-          pointerEvents: collapsed ? "none" : "auto", // Disable interaction when collapsed
+          opacity: collapsed ? 0 : 1,
+          transition: "opacity 0.2s ease",
+          pointerEvents: collapsed ? "none" : "auto",
         }}
       >
-        {memoizedWidgets}
+        {widgets.map((widget) => {
+          return (
+            <SnapContainer
+              key={`${widget.id}`}
+              startCorner={widget.startCorner}
+              onDragEnd={onDragEnd}
+              onDelete={handleDeleteWidget}
+              cornerOccupied={cornerOccupied}
+            >
+              {(props) => (
+                <DraggableWrapper
+                  collapsed={collapsed}
+                  {...props}
+                  onMouseEnter={handleMouseEnter}
+                  onMouseLeave={handleMouseLeave}
+                  isEditMode={editMode}
+                >
+                  <Widget audioOnly={props.widgetSize > 0} type={widget.type} />
+                </DraggableWrapper>
+              )}
+            </SnapContainer>
+          );
+        })}
       </div>
     </div>
   );

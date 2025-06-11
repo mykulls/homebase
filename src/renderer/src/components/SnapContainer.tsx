@@ -9,7 +9,7 @@ export enum Corner {
 }
 
 interface SnapContainerProps {
-  startCorner: Corner; // New prop to determine the initial corner
+  startCorner: Corner;
   onDragEnd: (corner: Corner, nextCorner: Corner) => void;
   onDelete: (corner: Corner) => void;
   cornerOccupied: (corner: Corner) => boolean;
@@ -47,7 +47,6 @@ function SnapContainer({ startCorner, onDragEnd, onDelete, cornerOccupied, child
   const [dragging, setDragging] = useState(false);
   const [nearestCorner, setNearestCorner] = useState<{ x: number; y: number } | null>(null);
   const [widgetSize, setWidgetSize] = useState(0);
-  const [loading, setLoading] = useState(true);
 
   // Calculate initial position based on the corner prop
   useEffect(() => {

@@ -123,7 +123,7 @@ function DraggableWrapper({
           !draggable || dragging || resizing
             ? "linear-gradient(69deg, rgba(255, 255, 255, 0.25) 52%, rgba(255, 255, 255, 0.1) 97%)"
             : "linear-gradient(69deg, rgba(255, 255, 255, 0.25) 12%, rgba(255, 255, 255, 0.1) 77%)",
-        // reducve transparency when dragging
+        // reduce transparency when dragging
         transition: dragging || resizing ? "none" : "all 0.2s ease-out", // Smooth snapping
       }}
       onMouseDown={handleMouseDown}
