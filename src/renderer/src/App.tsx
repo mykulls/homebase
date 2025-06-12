@@ -93,8 +93,7 @@ const App = () => {
   const handleAddWidget = (type: WidgetType) => {
     const availableBox = getNextAvailableBox();
     const availableId = getNextAvailableId();
-    console.log("Available Box:", availableBox, "Available ID:", availableId);
-    console.log(boxes);
+
     if (availableBox !== null && availableId !== -1) {
       const nextBoxes = boxes;
       nextBoxes[availableBox] = availableId;

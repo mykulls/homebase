@@ -61,7 +61,7 @@ function YoutubePlayer({ width, audioOnly = false }: YoutubePlayerProps) {
         },
         events: {
           onReady: () => {
-            console.log("Player ready");
+            // console.log("Player ready");
           },
           onStateChange: (event) => {
             // Video has started playing at least once
