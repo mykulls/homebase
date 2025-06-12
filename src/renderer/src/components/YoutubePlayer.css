@@ -7,6 +7,51 @@
   margin: 0 auto;
   font-family: Roboto, sans-serif !important;
   font-size: 16px;
+  position: relative;
+}
+
+.video-controls-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: transparent;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 12px;
+  opacity: 1;
+  transition: all 0.2s ease;
+  z-index: 2;
+}
+
+.video-controls-overlay:hover {
+  background: rgba(0, 0, 0, 0.069);
+}
+
+.video-controls-overlay .button-container {
+  opacity: 0;
+  transition: all 0.2s ease;
+  box-shadow: none;
+}
+
+.video-controls-overlay .button-container > button {
+  font-size: 16px;
+}
+
+.video-controls-overlay:hover .button-container {
+  opacity: 1;
+}
+
+.audio-controls {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+.audio-controls .button-container {
+  box-shadow: none;
 }
 
 .youtube-link {
@@ -34,8 +79,8 @@ input:focus-visible {
   background-blend-mode: normal;
   background: linear-gradient(69deg, rgba(255, 255, 255, 0.25) 10%, rgba(255, 255, 255, 0.1) 88%);
   box-shadow: 0px 4px 24px 1px rgba(0, 0, 0, 0.28);
-  backdrop-filter: blur(4px) brightness(50%); /* blur effects don't appear to work outside of the browser objects, use Electron acrylic on Windows 11? */
-  -webkit-backdrop-filter: blur(4px) brightness(50%);
+  backdrop-filter: blur(2px) brightness(50%); /* blur effects don't appear to work outside of the browser objects, use Electron acrylic on Windows 11? */
+  -webkit-backdrop-filter: blur(2px) brightness(50%);
   color: #e1e1e1;
 }
 
@@ -50,10 +95,62 @@ input:focus-visible {
   display: flex;
   justify-content: center;
   align-items: center;
+  font-family: Roboto, sans-serif;
 }
 
-.load-button-container > button:hover {
+.button-container > button:hover {
   z-index: 1;
-  backdrop-filter: blur(4px) brightness(69%);
-  text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.69);
+  backdrop-filter: blur(2px) brightness(69%);
+  text-shadow: 0px 0px 2px rgba(0, 0, 0, 0.69);
+}
+
+.volume-control {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.volume-control input {
+  flex: 1;
+  height: 4px;
+  background-blend-mode: normal;
+  background: linear-gradient(69deg, rgba(255, 255, 255, 0.25) 10%, rgba(255, 255, 255, 0.1) 88%);
+  backdrop-filter: blur(2px) brightness(50%); /* blur effects don't appear to work outside of the browser objects, use Electron acrylic on Windows 11? */
+  -webkit-backdrop-filter: blur(2px) brightness(50%);
+  border: 1px solid rgba(255, 255, 255, 0.69);
+  appearance: none;
+  -webkit-appearance: none;
+  transition: all 0.2s ease;
+  -webkit-transition: 0.2s;
+  border-radius: 2px;
+}
+
+.volume-control input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: linear-gradient(69deg, rgba(255, 255, 255, 0.25) 10%, rgba(255, 255, 255, 0.1) 88%);
+  backdrop-filter: blur(2px) brightness(50%); /* blur effects don't appear to work outside of the browser objects, use Electron acrylic on Windows 11? */
+  -webkit-backdrop-filter: blur(2px) brightness(50%);
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.69);
+}
+
+.volume-control input::-webkit-slider-thumb:hover {
+  backdrop-filter: blur(2px) brightness(69%);
+}
+
+.volume-control-wrapper {
+  height: 100%;
+  width: 100%;
+  padding: 0px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #e1e1e1;
+  font-family: Roboto, sans-serif;
+  font-size: 16px;
 }

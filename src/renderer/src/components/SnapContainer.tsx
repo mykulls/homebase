@@ -15,6 +15,7 @@ interface SnapContainerProps {
     onDelete: () => void;
     onDimensionsChange: (final: boolean, dimensions: { width: number; height: number }) => void;
     dimensions: { width: number; height: number };
+    smallWidget: boolean;
   }) => ReactNode;
 }
 
@@ -44,6 +45,7 @@ function SnapContainer({
   const [curBox, setBox] = useState(startBox);
   const [dragging, setDragging] = useState(false);
   const [nearestBox, setNearestBox] = useState<{ x: number; y: number } | null>(null);
+  const [smallWidget, setSmall] = useState(false);
 
   useEffect(() => {
     setPosition(boxPositions[startBox]);
@@ -101,8 +103,21 @@ function SnapContainer({
 
   const handleDimensionsChange = (final: boolean, newDimensions: { width: number; height: number }) => {
     let newHeight = newDimensions.height;
+
+    if (newDimensions.height < defaultDim.height * 0.88) {
+      setSmall(true);
+    } else {
+      setSmall(false);
+    }
+
     if (final) {
-      newHeight = newDimensions.height < defaultDim.height / 2 ? defaultDim.height / 2 : defaultDim.height;
+      newHeight = defaultDim.height;
+      if (newDimensions.height < defaultDim.height / 2) {
+        newHeight = defaultDim.height / 2;
+        setSmall(true);
+      } else {
+        setSmall(false);
+      }
 
       setPosition(boxPositions[curBox]);
     }
@@ -148,6 +163,7 @@ function SnapContainer({
         onDelete: handleDelete,
         onDimensionsChange: handleDimensionsChange,
         dimensions: dimensions,
+        smallWidget,
       })}
     </div>
   );
