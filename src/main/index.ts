@@ -2,7 +2,7 @@ import { app, components, BrowserWindow, ipcMain, shell } from "electron";
 import { join } from "path";
 import { createServer } from "http";
 
-const devMode = true;
+const devMode = false;
 let mainWindow: BrowserWindow | null = null;
 
 // Create HTTP server for Spotify callback

@@ -24,3 +24,10 @@ body {
   color: #fff;
   cursor: pointer;
 }
+
+.expand-collapse-button-wrapper {
+  transition: transform 0.2s ease;
+}
+.expand-collapse-button-wrapper:hover {
+  transform: translateX(20px);
+}

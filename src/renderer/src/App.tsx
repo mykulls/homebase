@@ -1,4 +1,4 @@
-import React, { useEffect, useState, JSX, useMemo } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Widget,
   DraggableWrapper,
@@ -9,6 +9,7 @@ import {
   WidgetType,
 } from "./components";
 import "./index.css";
+import "bootstrap-icons/font/bootstrap-icons.css";
 
 type WidgetInfo = {
   type: WidgetType;
@@ -123,23 +124,15 @@ const App = () => {
         }}
       >
         <DraggableWrapper
-          position={{ x: window.innerWidth - 20, y: window.innerHeight - 100 }}
+          position={{ x: 120, y: 20 }}
           draggable={false}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
+          dimensions={{ width: 50, height: 50 }}
         >
           <AddButton onAddWidget={handleAddWidget} />
         </DraggableWrapper>
       </div>
-
-      <DraggableWrapper
-        position={{ x: -30, y: window.innerHeight - 60 }}
-        draggable={false}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={handleMouseLeave}
-      >
-        <ExpandCollapseButton collapsed={collapsed} toggleCollapse={toggleCollapse} />
-      </DraggableWrapper>
 
       <div
         style={{
@@ -150,12 +143,25 @@ const App = () => {
       >
         <DraggableWrapper
           collapsed={collapsed}
-          position={{ x: window.innerWidth - 20, y: window.innerHeight - 60 }}
+          position={{ x: 50, y: 20 }}
           draggable={false}
           onMouseEnter={handleMouseEnter}
           onMouseLeave={handleMouseLeave}
+          dimensions={{ width: 50, height: 50 }}
         >
           <EditButton isEditMode={editMode} toggleEditMode={toggleEditMode} />
+        </DraggableWrapper>
+      </div>
+
+      <div className="expand-collapse-button-wrapper">
+        <DraggableWrapper
+          position={{ x: -40, y: 20 }}
+          draggable={false}
+          onMouseEnter={handleMouseEnter}
+          onMouseLeave={handleMouseLeave}
+          dimensions={{ width: 60, height: 50 }}
+        >
+          <ExpandCollapseButton collapsed={collapsed} toggleCollapse={toggleCollapse} />
         </DraggableWrapper>
       </div>
 

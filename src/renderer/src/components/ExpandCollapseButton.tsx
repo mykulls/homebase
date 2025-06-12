@@ -10,8 +10,12 @@ function ExpandCollapseButton({ collapsed, toggleCollapse }: ExpandCollapseButto
   return (
     <div className="expand-collapse-container">
       <button className="expand-collapse-button" onClick={toggleCollapse}>
-        <span className="expand-collapse-caret">^</span>
-        {collapsed ? <span className="expand-collapse-icon">+</span> : <span className="expand-collapse-icon">−</span>}
+        <span
+          style={{ rotate: collapsed ? "90deg" : "-90deg", marginLeft: collapsed ? 32 : 48 }}
+          className="expand-collapse-caret"
+        >
+          ^
+        </span>
       </button>
     </div>
   );
