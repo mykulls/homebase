@@ -7,31 +7,21 @@ import {
   EditButton,
   AddButton,
   WidgetType,
-  Corner,
 } from "./components";
 import "./index.css";
-
-type CornerMap = {
-  [key in Corner]: number;
-};
 
 type WidgetInfo = {
   type: WidgetType;
   id: number;
-  startCorner: Corner;
+  startBox: number;
 };
 
 const App = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [editMode, setEditMode] = useState(false);
-  const [corners, setCorners] = useState<CornerMap>({
-    [Corner.TopLeft]: -1,
-    [Corner.TopRight]: -1,
-    [Corner.BottomLeft]: -1,
-    [Corner.BottomRight]: -1,
-  });
+  const [boxes, setBoxes] = useState<number[]>(Array(3).fill(-1)); // -1 means empty, otherwise it holds widget id
   const [widgets, setWidgets] = useState<WidgetInfo[]>([]);
-  const [swapCorner, setSwapCorner] = useState<Corner | null>(null);
+  const [swapBox, setSwapBox] = useState<number | null>(null);
   const [swapWidget, setSwapWidget] = useState<number | null>(null); // widget id of the widget being swapped
 
   useEffect(() => {
@@ -57,17 +47,18 @@ const App = () => {
     setEditMode((prev) => !prev);
   };
 
-  const cornerOccupied = (corner: Corner) => {
-    return corners[corner] !== -1;
+  const boxOccupied = (box: number) => {
+    return boxes[box] !== -1;
   };
 
-  const getNextAvailableCorner = () => {
-    const cornerOrder = [Corner.TopLeft, Corner.TopRight, Corner.BottomRight, Corner.BottomLeft];
-    return cornerOrder.find((corner) => !cornerOccupied(corner)) || null;
+  const getNextAvailableBox = () => {
+    const nextBox = boxes.findIndex((box) => box === -1);
+
+    return nextBox !== -1 ? nextBox : null;
   };
 
   const getNextAvailableId = () => {
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 3; i++) {
       if (widgets.find((w) => w.id === i) === undefined) {
         return i;
       }
@@ -76,49 +67,48 @@ const App = () => {
     return -1;
   };
 
-  const onDragEnd = (currentCorner: Corner, nextCorner: Corner) => {
-    if (currentCorner === nextCorner) return;
+  const onDragEnd = (currentBox: number, nextBox: number) => {
+    if (currentBox === nextBox) return;
 
-    const widgetId = corners[currentCorner];
+    const widgetId = boxes[currentBox];
     if (widgetId === -1) return;
-    if (cornerOccupied(nextCorner)) {
-      const otherWidgetId = corners[nextCorner];
-      setCorners((prev) => ({
-        ...prev,
-        [currentCorner]: otherWidgetId,
-        [nextCorner]: widgetId,
-      }));
+
+    if (boxOccupied(nextBox)) {
+      const otherWidgetId = boxes[nextBox];
+      const nextBoxes = boxes;
+      nextBoxes[currentBox] = otherWidgetId;
+      nextBoxes[nextBox] = widgetId;
+      setBoxes(nextBoxes);
       setSwapWidget(otherWidgetId);
-      setSwapCorner(currentCorner);
+      setSwapBox(currentBox);
     } else {
-      setCorners((prev) => ({
-        ...prev,
-        [currentCorner]: -1,
-        [nextCorner]: widgetId,
-      }));
+      const nextBoxes = boxes;
+      nextBoxes[currentBox] = -1;
+      nextBoxes[nextBox] = widgetId;
+      setBoxes(nextBoxes);
     }
   };
 
   const handleAddWidget = (type: WidgetType) => {
-    const availableCorner = getNextAvailableCorner();
+    const availableBox = getNextAvailableBox();
     const availableId = getNextAvailableId();
-    if (availableCorner && availableId !== -1) {
-      setCorners((prev) => ({
-        ...prev,
-        [availableCorner]: availableId,
-      }));
-      setWidgets((prev) => [...prev, { type, id: availableId, startCorner: availableCorner }]);
+    console.log("Available Box:", availableBox, "Available ID:", availableId);
+    console.log(boxes);
+    if (availableBox !== null && availableId !== -1) {
+      const nextBoxes = boxes;
+      nextBoxes[availableBox] = availableId;
+      setBoxes(nextBoxes);
+      setWidgets((prev) => [...prev, { type, id: availableId, startBox: availableBox }]);
     } else {
-      alert("All corners are occupied! Remove a widget to add a new one.");
+      alert("All positions are occupied! Remove a widget to add a new one.");
     }
   };
 
-  const handleDeleteWidget = (corner: Corner) => {
-    const widgetId = corners[corner];
-    setCorners((prev) => ({
-      ...prev,
-      [corner]: -1,
-    }));
+  const handleDeleteWidget = (box: number) => {
+    const widgetId = boxes[box];
+    const nextBoxes = boxes;
+    nextBoxes[box] = -1;
+    setBoxes(nextBoxes);
     const newWidgets = widgets.filter((w) => w.id !== widgetId);
     setWidgets(newWidgets);
   };
@@ -180,15 +170,15 @@ const App = () => {
           return (
             <SnapContainer
               key={`${widget.id}`}
-              newCorner={swapWidget !== null && swapWidget === widget.id ? swapCorner : null}
-              nullNewCorner={() => {
-                setSwapCorner(null);
+              newBox={swapWidget !== null && swapWidget === widget.id ? swapBox : null}
+              nullNewBox={() => {
+                setSwapBox(null);
                 setSwapWidget(null);
               }}
-              startCorner={widget.startCorner}
+              startBox={widget.startBox}
               onDragEnd={onDragEnd}
               onDelete={handleDeleteWidget}
-              cornerOccupied={cornerOccupied}
+              boxOccupied={boxOccupied}
             >
               {(props) => (
                 <DraggableWrapper
@@ -198,7 +188,7 @@ const App = () => {
                   onMouseLeave={handleMouseLeave}
                   isEditMode={editMode}
                 >
-                  <Widget audioOnly={props.widgetSize > 0} type={widget.type} />
+                  <Widget type={widget.type} />
                 </DraggableWrapper>
               )}
             </SnapContainer>

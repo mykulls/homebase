@@ -1,11 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import "./DraggableWrapper.css";
-import { Corner } from "./SnapContainer";
 
 interface DraggableWrapperProps {
   children: React.ReactNode;
   position: { x: number; y: number };
-  bottom?: boolean;
   draggable?: boolean;
   collapsed?: boolean;
   onMouseEnter?: () => void;
@@ -24,7 +22,6 @@ function DraggableWrapper({
   position,
   draggable = true,
   collapsed = false,
-  bottom = false,
   onMouseEnter = () => {},
   onMouseLeave = () => {},
   onPositionChange = () => {},
@@ -39,7 +36,6 @@ function DraggableWrapper({
   const [resizing, setResizing] = useState(false);
   const offsetRef = useRef({ x: 0, y: 0 });
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const initialBottomRef = useRef<number>(0); // Add this new ref
 
   if (collapsed) {
     draggable = false;
@@ -55,18 +51,9 @@ function DraggableWrapper({
   useEffect(() => {
     const handleResize = (e: MouseEvent) => {
       if (!resizing || !wrapperRef.current) return;
-
-      if (bottom) {
-        // Use the stored initial bottom position instead of current rect.bottom
-        const newHeight = Math.max(100, initialBottomRef.current - e.clientY);
-        onDimensionsChange(false, { width: dimensions.width, height: newHeight });
-        onPositionChange({ x: position.x, y: initialBottomRef.current - newHeight });
-      } else {
-        // Original behavior for top corners
-        const rect = wrapperRef.current.getBoundingClientRect();
-        const newHeight = Math.max(100, e.clientY - rect.top);
-        onDimensionsChange(false, { width: dimensions.width, height: newHeight });
-      }
+      const rect = wrapperRef.current.getBoundingClientRect();
+      const newHeight = Math.max(100, e.clientY - rect.top);
+      onDimensionsChange(false, { width: dimensions.width, height: newHeight });
     };
 
     const handleResizeEnd = () => {
@@ -113,12 +100,7 @@ function DraggableWrapper({
     e.preventDefault();
   };
 
-  // Modify handleResizeStart to store initial bottom position
   const handleResizeStart = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (wrapperRef.current) {
-      const rect = wrapperRef.current.getBoundingClientRect();
-      initialBottomRef.current = rect.bottom;
-    }
     setResizing(true);
     e.stopPropagation();
     e.preventDefault();
@@ -200,12 +182,11 @@ function DraggableWrapper({
         <div
           style={{
             position: "absolute",
-            ...(bottom ? { top: -3 } : { bottom: -3 }),
-            ...(bottom ? { rotate: "-90deg" } : {}),
+            bottom: -3,
             right: -3,
             width: "16px",
             height: "16px",
-            ...(bottom ? { cursor: "nesw-resize" } : { cursor: "nwse-resize" }),
+            cursor: "nwse-resize",
             borderRight: "6px solid grey",
             borderBottom: "6px solid grey",
             borderRadius: "4px",

@@ -1,22 +1,13 @@
 import React, { useState, ReactNode, useEffect } from "react";
 
-export enum Corner {
-  // string enums for looping
-  TopLeft = "top-left",
-  TopRight = "top-right",
-  BottomRight = "bottom-right",
-  BottomLeft = "bottom-left",
-}
-
 interface SnapContainerProps {
-  startCorner: Corner;
-  onDragEnd: (corner: Corner, nextCorner: Corner) => void;
-  onDelete: (corner: Corner) => void;
-  cornerOccupied: (corner: Corner) => boolean;
-  newCorner: Corner | null;
-  nullNewCorner: () => void;
+  startBox: number;
+  onDragEnd: (box: number, nextBox: number) => void;
+  onDelete: (box: number) => void;
+  boxOccupied: (box: number) => boolean;
+  newBox: number | null;
+  nullNewBox: () => void;
   children: (props: {
-    bottom: boolean;
     position: { x: number; y: number };
     onPositionChange: (position: { x: number; y: number }) => void;
     onDragStart: () => void;
@@ -24,150 +15,124 @@ interface SnapContainerProps {
     onDelete: () => void;
     onDimensionsChange: (final: boolean, dimensions: { width: number; height: number }) => void;
     dimensions: { width: number; height: number };
-    widgetSize: number;
   }) => ReactNode;
 }
 
 function SnapContainer({
-  startCorner,
+  startBox,
   onDragEnd,
   onDelete,
-  cornerOccupied,
-  newCorner,
-  nullNewCorner,
+  boxOccupied,
+  newBox,
+  nullNewBox,
   children,
 }: SnapContainerProps) {
   const initWidth = window.innerWidth;
   const initHeight = window.innerHeight;
-  const getCorners = (innerWidth: number, innerHeight: number, padding: number, width: number, height: number) => {
-    return {
-      [Corner.TopLeft]: { x: padding, y: padding },
-      [Corner.TopRight]: { x: innerWidth - width - padding, y: padding },
-      [Corner.BottomRight]: { x: innerWidth - width - padding, y: innerHeight - height - padding },
-      [Corner.BottomLeft]: { x: padding, y: innerHeight - height - padding },
-    };
-  };
-
-  const defaultDim = { width: 420, height: 360 };
+  const topSpacing = 100;
   const padding = 20;
+  const sectionWidth = Math.min(initWidth * 0.3, 420); // 30% of screen width or max 500px
+  const sectionHeight = Math.min((initHeight - padding * 4 - topSpacing) / 3, 360); // Divide height into 3 equal sections, subtract 100 for top-most controls
+  const boxPositions = [...Array(3)].map((_, i) => ({
+    x: padding,
+    y: topSpacing + padding * (i + 1) + sectionHeight * i,
+  }));
+
+  const defaultDim = { width: sectionWidth, height: sectionHeight };
   const [dimensions, setDimensions] = useState(defaultDim);
-  const [position, setPosition] = useState(
-    getCorners(initWidth, initHeight, padding, defaultDim.width, defaultDim.height)[startCorner]
-  );
-  const [curCorner, setCorner] = useState(startCorner);
+  const [position, setPosition] = useState(boxPositions[startBox]);
+  const [curBox, setBox] = useState(startBox);
   const [dragging, setDragging] = useState(false);
-  const [resizing, setResizing] = useState(false);
-  const [nearestCorner, setNearestCorner] = useState<{ x: number; y: number } | null>(null);
-  const [widgetSize, setWidgetSize] = useState(0);
+  const [nearestBox, setNearestBox] = useState<{ x: number; y: number } | null>(null);
 
   useEffect(() => {
-    const { innerWidth, innerHeight } = window;
-    const initialPosition = getCorners(innerWidth, innerHeight, padding, defaultDim.width, defaultDim.height);
-
-    setPosition(initialPosition[startCorner]);
-  }, [startCorner]);
+    setPosition(boxPositions[startBox]);
+  }, [startBox]);
 
   useEffect(() => {
-    if (newCorner === null) return;
+    if (newBox === null) return;
 
+    setBox(newBox);
+    setPosition(boxPositions[newBox]);
+    nullNewBox();
+  }, [newBox, dimensions]);
+
+  const snapToBox = (pos: { x: number; y: number }) => {
     const { innerWidth, innerHeight } = window;
-    const swapPosition = getCorners(innerWidth, innerHeight, padding, dimensions.width, dimensions.height);
-    setCorner(newCorner);
-    setPosition(swapPosition[newCorner]);
-    nullNewCorner();
-  }, [newCorner, dimensions]);
 
-  const snapToCorner = (pos: { x: number; y: number }) => {
-    const { innerWidth, innerHeight } = window;
-    const { width, height } = dimensions;
-
-    const corners = getCorners(innerWidth, innerHeight, padding, width, height);
-
-    // Find the nearest corner
-    let nextPos = corners[Corner.TopLeft];
-    let nextCorner = Corner.TopLeft;
+    // Find the nearest box
+    let nextPos = boxPositions[0];
+    let nextBox = 0;
     let minDistance = Number.MAX_VALUE;
 
-    Object.entries(corners).forEach(([corner, cornerPos]) => {
-      const distance = Math.hypot(pos.x - cornerPos.x, pos.y - cornerPos.y);
+    boxPositions.forEach((boxPos, index) => {
+      const distance = Math.hypot(pos.x - boxPos.x, pos.y - boxPos.y);
       if (distance < minDistance) {
         minDistance = distance;
-        nextPos = cornerPos;
-        nextCorner = corner as Corner;
+        nextPos = boxPos;
+        nextBox = index;
       }
     });
 
-    setNearestCorner(nextPos);
-    return { nextPos, nextCorner };
+    setNearestBox(nextPos);
+    return { nextPos, nextBox };
   };
 
   const handlePositionChange = (newPosition: { x: number; y: number }) => {
-    if (dragging || (resizing && (curCorner === Corner.BottomLeft || curCorner === Corner.BottomRight))) {
+    if (dragging) {
       setPosition(newPosition);
-      snapToCorner(newPosition);
+      snapToBox(newPosition);
     }
   };
 
   const handleDragStart = () => {
     setDragging(true);
-    nullNewCorner();
+    nullNewBox();
   };
 
   const handleDragEnd = () => {
-    const { nextPos, nextCorner } = snapToCorner(position);
-    nullNewCorner();
+    const { nextPos, nextBox } = snapToBox(position);
+    nullNewBox();
     setPosition(nextPos);
-    setCorner(nextCorner);
-    onDragEnd(curCorner, nextCorner);
+    setBox(nextBox);
+    onDragEnd(curBox, nextBox);
     setDragging(false);
   };
 
   const handleDimensionsChange = (final: boolean, newDimensions: { width: number; height: number }) => {
-    setResizing(true);
-
     let newHeight = newDimensions.height;
     if (final) {
       newHeight = newDimensions.height < defaultDim.height / 2 ? defaultDim.height / 2 : defaultDim.height;
 
-      const { innerWidth, innerHeight } = window;
-      const nextPos = getCorners(innerWidth, innerHeight, padding, newDimensions.width, newHeight)[curCorner];
-      setPosition(nextPos);
-      setResizing(false);
+      setPosition(boxPositions[curBox]);
     }
     setDimensions({ width: newDimensions.width, height: newHeight });
-    if (newHeight <= defaultDim.height * 0.9) {
-      setWidgetSize(1);
-    } else {
-      setWidgetSize(0);
-    }
   };
 
   const handleDelete = () => {
-    onDelete(curCorner);
+    onDelete(curBox);
   };
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%", zIndex: dragging ? 1 : 0 }}>
       {dragging &&
-        Object.values(Corner).map((corner) => {
-          const { innerWidth, innerHeight } = window;
-          const { width, height } = dimensions;
-          const cornerPosition = getCorners(innerWidth, innerHeight, padding, width, height)[corner];
-          const isNearest = nearestCorner?.x === cornerPosition.x && nearestCorner?.y === cornerPosition.y;
+        boxPositions.map((boxPosition, box) => {
+          const isNearest = nearestBox?.x === boxPosition.x && nearestBox?.y === boxPosition.y;
+
           return (
-            (corner === curCorner || !cornerOccupied(corner)) && (
+            (box === curBox || !boxOccupied(box)) && (
               <div
-                key={corner}
+                key={box}
                 style={{
                   position: "absolute",
-                  left: cornerPosition.x,
-                  top: cornerPosition.y,
-                  width: `${width}px`,
-                  height: `${height}px`,
+                  left: boxPosition.x,
+                  top: boxPosition.y,
+                  width: `${dimensions.width}px`,
+                  height: `${dimensions.height}px`,
                   border: "2px dashed white",
                   opacity: isNearest ? 0.7 : 0.2,
                   pointerEvents: "none",
-                  transform: "translate(-2px, -2px)", // Adjust for border width
+                  transform: "translate(-2px, -2px)",
                   borderRadius: "12px",
                 }}
               />
@@ -176,7 +141,6 @@ function SnapContainer({
         })}
 
       {children({
-        bottom: curCorner === Corner.BottomLeft || curCorner === Corner.BottomRight,
         position,
         onPositionChange: handlePositionChange,
         onDragStart: handleDragStart,
@@ -184,7 +148,6 @@ function SnapContainer({
         onDelete: handleDelete,
         onDimensionsChange: handleDimensionsChange,
         dimensions: dimensions,
-        widgetSize: widgetSize,
       })}
     </div>
   );
