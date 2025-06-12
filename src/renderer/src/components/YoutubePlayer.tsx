@@ -1,10 +1,12 @@
 import React, { useState, useRef, useEffect, FormEvent } from "react";
+import "./YoutubePlayer.css";
 
 interface YoutubePlayerProps {
   audioOnly?: boolean;
 }
 
 function YoutubePlayer({ audioOnly = false }: YoutubePlayerProps) {
+  const [isPlaying, setPlaying] = useState(false);
   const [videoId, setVideoId] = useState<string>("");
   const [input, setInput] = useState<string>("");
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -71,6 +73,7 @@ function YoutubePlayer({ audioOnly = false }: YoutubePlayerProps) {
     } else {
       player.playVideo();
     }
+    setPlaying(!isPlaying);
   };
 
   const skip = (seconds: number) => {
@@ -82,8 +85,12 @@ function YoutubePlayer({ audioOnly = false }: YoutubePlayerProps) {
   };
 
   return (
-    <div style={{ padding: "16px", maxWidth: "600px", margin: "0 auto" }}>
-      <form onSubmit={handleSubmit} style={{ marginBottom: "16px", display: "flex", gap: "8px" }}>
+    <div className="youtube-container">
+      <form
+        className="youtube-link"
+        onSubmit={handleSubmit}
+        style={{ marginBottom: "16px", display: "flex", gap: "8px" }}
+      >
         <input
           type="text"
           placeholder="Paste YouTube link"
@@ -91,9 +98,11 @@ function YoutubePlayer({ audioOnly = false }: YoutubePlayerProps) {
           onChange={(e) => setInput(e.target.value)}
           style={{ flex: 1, padding: "8px", zIndex: 1 }}
         />
-        <button type="submit" style={{ padding: "8px 16px" }}>
-          Load
-        </button>
+        <div className="button-container">
+          <button type="submit" style={{ padding: "8px 16px" }}>
+            Load
+          </button>
+        </div>
       </form>
 
       {videoId && (
@@ -119,15 +128,25 @@ function YoutubePlayer({ audioOnly = false }: YoutubePlayerProps) {
           </div>
 
           <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-            <button onClick={handlePlayPause} style={{ padding: "8px 12px" }}>
-              Play / Pause
-            </button>
-            <button onClick={() => skip(-10)} style={{ padding: "8px 12px" }}>
-              ⏪ -10s
-            </button>
-            <button onClick={() => skip(10)} style={{ padding: "8px 12px" }}>
-              ⏩ +10s
-            </button>
+            <div className="button-container">
+              <button onClick={handlePlayPause} style={{ padding: "8px 12px" }}>
+                {isPlaying ? (
+                  <i className="bi bi-pause-fill" style={{ marginTop: 2 }}></i>
+                ) : (
+                  <i className="bi bi-play" style={{ marginTop: 2 }}></i>
+                )}
+              </button>
+            </div>
+            <div className="button-container">
+              <button onClick={() => skip(-10)} style={{ padding: "8px 12px" }}>
+                <i className="bi bi-skip-start" style={{ marginTop: 2 }}></i> 10
+              </button>
+            </div>
+            <div className="button-container">
+              <button onClick={() => skip(10)} style={{ padding: "8px 12px" }}>
+                <i className="bi bi-skip-end" style={{ marginTop: 2 }}></i> 10
+              </button>
+            </div>
           </div>
         </>
       )}

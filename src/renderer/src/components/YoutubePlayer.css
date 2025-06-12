@@ -1,0 +1,59 @@
+.youtube-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  margin: 0 auto;
+  font-family: Roboto, sans-serif !important;
+  font-size: 16px;
+}
+
+.youtube-link {
+  background: transparent;
+}
+
+.youtube-link > input {
+  border: 1px solid rgba(255, 255, 255, 0.69);
+  border: none;
+  background: rgba(255, 255, 255, 0.69);
+  border-radius: 8px;
+  font-family: Roboto, sans-serif;
+}
+
+input:focus-visible {
+  outline: 2px solid rgba(255, 255, 255, 1);
+}
+
+.button-container {
+  width: 50px;
+  cursor: pointer;
+  text-align: center;
+  border: 1px solid rgba(255, 255, 255, 0.69);
+  border-radius: 8px;
+  background-blend-mode: normal;
+  background: linear-gradient(69deg, rgba(255, 255, 255, 0.25) 10%, rgba(255, 255, 255, 0.1) 88%);
+  box-shadow: 0px 4px 24px 1px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(4px) brightness(50%); /* blur effects don't appear to work outside of the browser objects, use Electron acrylic on Windows 11? */
+  -webkit-backdrop-filter: blur(4px) brightness(50%);
+  color: #e1e1e1;
+}
+
+.button-container > button {
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  border: none;
+  color: #e1e1e1;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.load-button-container > button:hover {
+  z-index: 1;
+  backdrop-filter: blur(4px) brightness(69%);
+  text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.69);
+}
