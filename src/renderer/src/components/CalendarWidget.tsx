@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ICAL from "ical.js";
+import "./CalendarWidget.css";
 
 interface CalendarEvent {
   summary: string;
@@ -12,6 +13,7 @@ interface CalendarEvent {
 function CalendarWidget() {
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const icsUrl = import.meta.env.VITE_ICS_URL;
 
@@ -50,6 +52,7 @@ function CalendarWidget() {
 
   useEffect(() => {
     setError(null);
+    setLoading(true);
     fetch(icsUrl)
       .then((response) => {
         if (!response.ok) throw new Error("Failed to fetch ICS file.");
@@ -60,6 +63,7 @@ function CalendarWidget() {
         // Filter events for only today's
         const todaysEvents = parsedEvents.filter((event) => isToday(event.start));
         setEvents(todaysEvents);
+        setLoading(false);
       })
       .catch((err) => {
         console.error(err);
@@ -68,31 +72,23 @@ function CalendarWidget() {
   }, [icsUrl]);
 
   return (
-    <div style={{ padding: "16px", maxWidth: "600px", margin: "0 auto" }}>
+    <div className="container">
       <h3>Today's Events</h3>
-      {error && <p style={{ color: "red" }}>{error}</p>}
-
-      <div style={{ maxHeight: "300px", overflowY: "auto", marginTop: "16px" }}>
+      <div className="calendar-scroll">
         {events.map((event, index) => (
-          <div
-            key={index}
-            style={{
-              padding: "12px",
-              marginBottom: "8px",
-              backgroundColor: "#f8f9fa",
-              borderRadius: "4px",
-              border: "1px solid #dee2e6",
-            }}
-          >
-            <div style={{ fontWeight: "bold" }}>{event.summary}</div>
-            <div style={{ fontSize: "14px", color: "#666" }}>
-              {new Date(event.start).toLocaleTimeString()} – {new Date(event.end).toLocaleTimeString()}
+          <div key={index} className="event">
+            <div style={{ fontWeight: 600 }}>{event.summary}</div>
+            <div style={{ opacity: 0.8, fontSize: "14px" }}>
+              {new Date(event.start).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} –{" "}
+              {new Date(event.end).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
             </div>
-            {event.location && <div style={{ fontSize: "14px", color: "#333" }}>📍 {event.location}</div>}
+            {event.location && <div style={{ fontSize: "14px", opacity: 0.8 }}>📍 {event.location}</div>}
           </div>
         ))}
         {events.length === 0 && !error && (
-          <div style={{ textAlign: "center", color: "#666" }}>No events scheduled for today</div>
+          <div style={{ textAlign: "center", opacity: 0.8 }}>
+            {loading ? "Loading..." : "No events scheduled for today"}
+          </div>
         )}
       </div>
     </div>

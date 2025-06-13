@@ -330,7 +330,7 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
   };
 
   return (
-    <div className="spotify-container">
+    <div className="container">
       {!isAuthorized ? (
         <div className="button-container">
           <button onClick={handleAuth}>Sign in with Spotify</button>
@@ -340,7 +340,7 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
           {currentTrack ? (
             <>
               <div className="track" style={{ fontSize: audioOnly ? 10 : 16 }}>
-                <div style={{ fontWeight: "bold", marginBottom: "4px" }}>{currentTrack.name}</div>
+                <div style={{ fontWeight: 600, marginBottom: "4px" }}>{currentTrack.name}</div>
                 <div style={{ opacity: 0.69 }}>{currentTrack.artist}</div>
               </div>
 

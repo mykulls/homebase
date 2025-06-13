@@ -124,7 +124,7 @@ function YoutubePlayer({ width, audioOnly = false }: YoutubePlayerProps) {
   );
 
   return (
-    <div className="youtube-container">
+    <div className="container">
       <form
         className="youtube-link"
         onSubmit={handleSubmit}
