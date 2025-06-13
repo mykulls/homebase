@@ -12,15 +12,15 @@ export enum WidgetType {
 
 interface WidgetProps {
   audioOnly?: boolean;
-  width: number;
+  defaultDim: { height: number; width: number };
   type: WidgetType;
 }
 
-function Widget({ audioOnly, width, type }: WidgetProps) {
+function Widget({ audioOnly, defaultDim, type }: WidgetProps) {
   let widget: any = null;
   switch (type) {
     case WidgetType.Youtube:
-      widget = <YoutubePlayer width={width} audioOnly={audioOnly} />;
+      widget = <YoutubePlayer defaultDim={defaultDim} audioOnly={audioOnly} />;
       break;
     case WidgetType.Spotify:
       widget = <SpotifyPlayer audioOnly={audioOnly} />;

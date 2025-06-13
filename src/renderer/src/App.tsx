@@ -193,7 +193,7 @@ const App = () => {
                   onMouseLeave={handleMouseLeave}
                   isEditMode={editMode}
                 >
-                  <Widget width={props.dimensions.width} type={widget.type} audioOnly={props.smallWidget} />
+                  <Widget defaultDim={props.defaultDim} type={widget.type} audioOnly={props.smallWidget} />
                 </DraggableWrapper>
               )}
             </SnapContainer>

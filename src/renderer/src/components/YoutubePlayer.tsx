@@ -2,11 +2,11 @@ import React, { useState, useRef, useEffect, FormEvent } from "react";
 import "./YoutubePlayer.css";
 
 interface YoutubePlayerProps {
-  width: number;
+  defaultDim: { height: number; width: number };
   audioOnly?: boolean;
 }
 
-function YoutubePlayer({ width, audioOnly = false }: YoutubePlayerProps) {
+function YoutubePlayer({ defaultDim, audioOnly = false }: YoutubePlayerProps) {
   const [isPlaying, setPlaying] = useState(false);
   const [videoId, setVideoId] = useState<string>("");
   const [input, setInput] = useState<string>("");
@@ -15,7 +15,8 @@ function YoutubePlayer({ width, audioOnly = false }: YoutubePlayerProps) {
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const ytPlayer = useRef<YT.Player | null>(null);
 
-  const DEFAULT_WIDTH = width - 40;
+  const { height, width } = defaultDim;
+  const DEFAULT_WIDTH = Math.min(width - 40, ((height - 80) * 16) / 9);
   const DEFAULT_HEIGHT = DEFAULT_WIDTH * 0.5625; // 16:9
 
   useEffect(() => {
@@ -134,10 +135,10 @@ function YoutubePlayer({ width, audioOnly = false }: YoutubePlayerProps) {
           placeholder="Paste YouTube link"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          style={{ flex: 1, padding: "8px", zIndex: 1 }}
+          style={{ flex: 1, padding: "0 8px", zIndex: 1, fontSize: videoId ? 10 : 16, height: videoId ? 20 : 34 }}
         />
-        <div className="button-container">
-          <button type="submit" style={{ padding: "8px 16px" }}>
+        <div className="button-container" style={{ height: videoId ? 20 : 32 }}>
+          <button type="submit" style={{ padding: "0 16px", fontSize: videoId ? 10 : 14 }}>
             Load
           </button>
         </div>

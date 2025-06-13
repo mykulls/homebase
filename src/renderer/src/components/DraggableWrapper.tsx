@@ -120,8 +120,8 @@ function DraggableWrapper({
         cursor: dragging ? "grabbing" : draggable && isEditMode ? "grab" : "default",
         background:
           !draggable || dragging || resizing
-            ? "linear-gradient(69deg, rgba(255, 255, 255, 0.25) 52%, rgba(255, 255, 255, 0.1) 97%)"
-            : "linear-gradient(69deg, rgba(255, 255, 255, 0.25) 12%, rgba(255, 255, 255, 0.1) 77%)",
+            ? "linear-gradient(69deg, rgba(128, 128, 128, 0.69) 52%, rgba(128, 128, 128, 0.42) 97%)"
+            : "linear-gradient(69deg, rgba(128, 128, 128, 0.69) 12%, rgba(128, 128, 128, 0.42) 77%)",
         // reduce transparency when dragging
         transition: dragging || resizing ? "none" : "all 0.2s ease-out",
       }}
@@ -144,7 +144,7 @@ function DraggableWrapper({
       onMouseLeave={onMouseLeave}
     >
       {isEditMode && draggable && !collapsed && (
-        <div className="button-container">
+        <div className="delete-button-container">
           <button
             onMouseDown={(e) => {
               e.stopPropagation();
@@ -166,14 +166,15 @@ function DraggableWrapper({
         <div
           style={{
             position: "absolute",
-            bottom: -3,
-            right: -3,
+            bottom: -2,
+            right: -2,
             width: "16px",
             height: "16px",
             cursor: "nwse-resize",
-            borderRight: "6px solid grey",
-            borderBottom: "6px solid grey",
+            borderRight: "6px solid rgba(255, 255, 255, 0.69)",
+            borderBottom: "6px solid rgba(255, 255, 255, 0.69)",
             borderRadius: "4px",
+            zIndex: 1,
           }}
           onMouseDown={handleResizeStart}
         />

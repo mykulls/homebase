@@ -15,6 +15,7 @@ interface SnapContainerProps {
     onDelete: () => void;
     onDimensionsChange: (final: boolean, dimensions: { width: number; height: number }) => void;
     dimensions: { width: number; height: number };
+    defaultDim: { width: number; height: number };
     smallWidget: boolean;
   }) => ReactNode;
 }
@@ -32,7 +33,7 @@ function SnapContainer({
   const initHeight = window.innerHeight;
   const topSpacing = 100;
   const padding = 20;
-  const sectionWidth = Math.min(initWidth * 0.3, 420); // 30% of screen width or max 420px
+  const sectionWidth = Math.min(initWidth * 0.2, 420); // 20% of screen width or max 420px
   const sectionHeight = Math.min((initHeight - padding * 4 - topSpacing) / 3, 360); // Divide height into 3 equal sections, subtract 100 for top-most controls
   const boxPositions = [...Array(3)].map((_, i) => ({
     x: padding,
@@ -163,6 +164,7 @@ function SnapContainer({
         onDelete: handleDelete,
         onDimensionsChange: handleDimensionsChange,
         dimensions: dimensions,
+        defaultDim: defaultDim,
         smallWidget,
       })}
     </div>
