@@ -144,35 +144,19 @@ function DraggableWrapper({
       onMouseLeave={onMouseLeave}
     >
       {isEditMode && draggable && !collapsed && (
-        <div
-          style={{
-            position: "absolute",
-            top: -3,
-            left: -3,
-            width: "24px",
-            height: "24px",
-            cursor: "pointer",
-            background: "#dc3545",
-            color: "white",
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "16px",
-            fontWeight: "bold",
-            zIndex: 1000,
-            boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-          }}
-          onMouseDown={(e) => {
-            e.stopPropagation();
-            e.preventDefault();
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete?.();
-          }}
-        >
-          ×
+        <div className="button-container">
+          <button
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete?.();
+            }}
+          >
+            -
+          </button>
         </div>
       )}
 
