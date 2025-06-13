@@ -64,7 +64,6 @@ function YoutubePlayer({ width, audioOnly = false }: YoutubePlayerProps) {
             // console.log("Player ready");
           },
           onStateChange: (event) => {
-            // Video has started playing at least once
             if (event.data === window.YT.PlayerState.PLAYING) {
               setIsInitialized(true);
             }

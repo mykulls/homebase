@@ -150,7 +150,6 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
           },
         });
 
-        // Do NOT clear currentTrack on 204; just set isPlaying to false
         if (response.status === 204) {
           setIsPlaying(false);
           return;
@@ -229,7 +228,6 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
     }
   };
 
-  // Play/pause logic: switch to computer if available, else control active device
   const handlePlayPause = async () => {
     if (!accessToken) return;
     if (!activeDevice) {

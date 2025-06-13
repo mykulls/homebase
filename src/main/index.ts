@@ -2,7 +2,7 @@ import { app, components, BrowserWindow, ipcMain, shell } from "electron";
 import { join } from "path";
 import { createServer } from "http";
 
-const devMode = true;
+const devMode = false;
 let mainWindow: BrowserWindow | null = null;
 
 // Create HTTP server for Spotify callback
@@ -44,7 +44,7 @@ const createWindow = () => {
 
   // Start the server on port 3000
   server.listen(3000, () => {
-    console.log("Callback server listening on port 3000");
+    // console.log("Callback server listening on port 3000");
   });
 
   // win.setBackgroundMaterial("acrylic");
