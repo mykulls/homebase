@@ -1,4 +1,4 @@
-import { app, components, BrowserWindow, ipcMain, shell } from "electron";
+import { app, BrowserWindow, ipcMain, shell } from "electron";
 import { join } from "path";
 import { createServer } from "http";
 
@@ -44,7 +44,7 @@ const createWindow = () => {
 
   // Start the server on port 3000
   server.listen(3000, () => {
-    console.log("Callback server listening on port 3000");
+    // console.log("Callback server listening on port 3000");
   });
 
   // win.setBackgroundMaterial("acrylic");
@@ -73,7 +73,5 @@ app.on("will-quit", () => {
 });
 
 app.whenReady().then(async () => {
-  await components.whenReady();
-  // console.log("components ready:", components.status());
   createWindow();
 });

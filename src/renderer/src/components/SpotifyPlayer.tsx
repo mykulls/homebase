@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { generateRandomString, sha256, base64encode } from "../utils/spotify";
+import "./SpotifyPlayer.css";
 
 interface SpotifyPlayerProps {
   audioOnly?: boolean;
@@ -149,7 +150,6 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
           },
         });
 
-        // Do NOT clear currentTrack on 204; just set isPlaying to false
         if (response.status === 204) {
           setIsPlaying(false);
           return;
@@ -228,7 +228,6 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
     }
   };
 
-  // Play/pause logic: switch to computer if available, else control active device
   const handlePlayPause = async () => {
     if (!accessToken) return;
     if (!activeDevice) {
@@ -329,74 +328,71 @@ function SpotifyPlayer({ audioOnly = false }: SpotifyPlayerProps) {
   };
 
   return (
-    <div style={{ padding: "16px", maxWidth: "600px", margin: "0 auto" }}>
+    <div className="container">
       {!isAuthorized ? (
-        <button onClick={handleAuth} className="sign-in">
-          Sign in with Spotify
-        </button>
+        <div className="button-container">
+          <button onClick={handleAuth}>Sign in with Spotify</button>
+        </div>
       ) : (
         <>
           {currentTrack ? (
             <>
-              <div style={{ marginBottom: "16px" }}>
-                <select
-                  value={activeDevice?.id || ""}
-                  onChange={(e) => transferPlayback(e.target.value)}
-                  style={{
-                    padding: "8px",
-                    width: "100%",
-                    marginBottom: "8px",
-                    borderRadius: "4px",
-                  }}
-                >
-                  {devices.map((device) => (
-                    <option key={device.id} value={device.id}>
-                      {device.name} {device.is_active ? "(Active)" : ""}
-                    </option>
-                  ))}
-                </select>
+              <div className="track" style={{ fontSize: audioOnly ? 10 : 16 }}>
+                <div style={{ fontWeight: 600, marginBottom: "4px" }}>{currentTrack.name}</div>
+                <div style={{ opacity: 0.69 }}>{currentTrack.artist}</div>
               </div>
 
-              <div style={{ display: "flex", gap: "12px", justifyContent: "center", alignItems: "center" }}>
-                <button onClick={handlePrevious} style={{ padding: "8px 12px" }}>
-                  ⏮
-                </button>
-                <button onClick={handlePlayPause} style={{ padding: "8px 12px" }}>
-                  {isPlaying ? "Pause" : "Play"}
-                </button>
-                <button onClick={handleNext} style={{ padding: "8px 12px" }}>
-                  ⏭
-                </button>
+              <div className="slider playback">
+                <div className="slider-wrapper">
+                  <span>{formatTime(seeking && seekValue !== null ? seekValue : progressMs)}</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={currentTrack.duration_ms}
+                    value={seeking && seekValue !== null ? seekValue : progressMs}
+                    onChange={(e) => handleSeekChange(Number(e.target.value))}
+                    onMouseUp={handleSeekCommit}
+                    onTouchEnd={handleSeekCommit}
+                  />
+                  <span>{formatTime(currentTrack.duration_ms)}</span>
+                </div>
               </div>
 
-              <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
-                <span>{formatTime(progressMs)}</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={currentTrack.duration_ms}
-                  value={seeking && seekValue !== null ? seekValue : progressMs}
-                  onChange={(e) => handleSeekChange(Number(e.target.value))}
-                  onMouseUp={handleSeekCommit}
-                  onTouchEnd={handleSeekCommit}
-                  style={{ flex: 1 }}
-                />
-                <span>{formatTime(currentTrack.duration_ms)}</span>
+              <div
+                className="audio-controls"
+                style={{ marginTop: audioOnly ? 4 : 12, marginBottom: audioOnly ? 4 : 12 }}
+              >
+                <div className="button-container" style={{ height: audioOnly ? 20 : 32 }}>
+                  <button onClick={handlePrevious}>
+                    <i className="bi bi-skip-start"></i>
+                  </button>
+                </div>
+                <div className="button-container" style={{ height: audioOnly ? 20 : 32 }}>
+                  <button onClick={handlePlayPause}>
+                    {isPlaying ? <i className="bi bi-pause-fill"></i> : <i className="bi bi-play"></i>}
+                  </button>
+                </div>
+                <div className="button-container" style={{ height: audioOnly ? 20 : 32 }}>
+                  <button onClick={handleNext}>
+                    <i className="bi bi-skip-end"></i>
+                  </button>
+                </div>
               </div>
 
-              <div style={{ marginTop: "16px", display: "flex", alignItems: "center", gap: "8px" }}>
-                <span>🔊</span>
-                <input
-                  type="range"
-                  min={0}
-                  max={100}
-                  value={volumeChanging && pendingVolume !== null ? pendingVolume : volume}
-                  onChange={(e) => handleVolumeSliderChange(Number(e.target.value))}
-                  onMouseUp={handleVolumeCommit}
-                  onTouchEnd={handleVolumeCommit}
-                  style={{ flex: 1 }}
-                />
-                <span>{volume}</span>
+              <div className="slider">
+                <div className="slider-wrapper">
+                  <i className="bi bi-volume-up"></i>
+                  <input
+                    type="range"
+                    min={0}
+                    max={100}
+                    value={volumeChanging && pendingVolume !== null ? pendingVolume : volume}
+                    onChange={(e) => handleVolumeSliderChange(Number(e.target.value))}
+                    onMouseUp={handleVolumeCommit}
+                    onTouchEnd={handleVolumeCommit}
+                  />
+                  <span>{volumeChanging && pendingVolume !== null ? pendingVolume : volume}</span>
+                </div>
               </div>
             </>
           ) : (

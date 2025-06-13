@@ -8,8 +8,12 @@
     script-src 'self' https://www.youtube.com https://www.youtube-nocookie.com https://open.spotify.com https://apis.google.com https://accounts.google.com https://sdk.scdn.co 'unsafe-inline';
     frame-src https://www.youtube.com https://www.youtube-nocookie.com https://open.spotify.com https://accounts.google.com https://accounts.spotify.com https://sdk.scdn.co;
     connect-src 'self' https://www.googleapis.com https://apis.google.com https://*.google.com https://accounts.spotify.com https://api.spotify.com;
-    style-src 'self' 'unsafe-inline';
-    img-src 'self' https://*.googleusercontent.com data:;" />
+    style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://fonts.gstatic.com;
+    font-src 'self' https://fonts.gstatic.com;
+    img-src 'self' https://*.googleusercontent.com https://*.ytimg.com data:;" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" />
   <title>homebase</title>
 
   <script src="https://apis.google.com/js/api.js"></script>

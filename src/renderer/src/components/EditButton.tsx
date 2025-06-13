@@ -1,5 +1,5 @@
 import React from "react";
-import "./EditButton.css";
+import "./OptionButton.css";
 
 interface EditButtonProps {
   isEditMode: boolean;
@@ -8,10 +8,17 @@ interface EditButtonProps {
 
 function EditButton({ isEditMode, toggleEditMode }: EditButtonProps) {
   return (
-    <div className="edit-button-container">
-      <button className="edit-button" onClick={toggleEditMode}>
-        <span className="edit-caret">^</span>
-        {isEditMode ? <span className="edit-icon">🔒</span> : <span className="edit-icon">⚙️</span>}
+    <div className="option-button-container">
+      <button onClick={toggleEditMode}>
+        {isEditMode ? (
+          <span className="icon">
+            <i className="bi bi-lock" style={{ marginTop: 2 }}></i>
+          </span>
+        ) : (
+          <span className="icon">
+            <i className="bi bi-gear" style={{ marginTop: 2 }}></i>
+          </span>
+        )}
       </button>
     </div>
   );

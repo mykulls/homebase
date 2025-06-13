@@ -51,21 +51,20 @@ function DraggableWrapper({
   useEffect(() => {
     const handleResize = (e: MouseEvent) => {
       if (!resizing || !wrapperRef.current) return;
-
       const rect = wrapperRef.current.getBoundingClientRect();
-      const newHeight = Math.max(100, e.clientY - rect.top); // Minimum height of 100px
-
-      onDimensionsChange(false, { width: rect.width, height: newHeight });
+      const newHeight = Math.max(100, e.clientY - rect.top);
+      onDimensionsChange(false, { width: dimensions.width, height: newHeight });
     };
 
     const handleResizeEnd = () => {
       if (resizing) {
         setResizing(false);
 
-        // Snap height to the closest option (half height or full height)
         if (wrapperRef.current) {
           const rect = wrapperRef.current.getBoundingClientRect();
-          onDimensionsChange(true, { width: rect.width, height: rect.height });
+          const newHeight = rect.height;
+
+          onDimensionsChange(true, { width: dimensions.width, height: newHeight });
         }
       }
     };
@@ -79,7 +78,7 @@ function DraggableWrapper({
       document.removeEventListener("mousemove", handleResize);
       document.removeEventListener("mouseup", handleResizeEnd);
     };
-  }, [resizing, onDimensionsChange]);
+  }, [resizing, onDimensionsChange, onPositionChange, dimensions.width]);
 
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!draggable || !isEditMode) return; // Prevent dragging if not draggable
@@ -121,8 +120,8 @@ function DraggableWrapper({
         cursor: dragging ? "grabbing" : draggable && isEditMode ? "grab" : "default",
         background:
           !draggable || dragging || resizing
-            ? "linear-gradient(69deg, rgba(255, 255, 255, 0.25) 52%, rgba(255, 255, 255, 0.1) 97%)"
-            : "linear-gradient(69deg, rgba(255, 255, 255, 0.25) 12%, rgba(255, 255, 255, 0.1) 77%)",
+            ? "linear-gradient(69deg, rgba(128, 128, 128, 0.69) 52%, rgba(128, 128, 128, 0.42) 97%)"
+            : "linear-gradient(69deg, rgba(128, 128, 128, 0.69) 12%, rgba(128, 128, 128, 0.42) 77%)",
         // reduce transparency when dragging
         transition: dragging || resizing ? "none" : "all 0.2s ease-out",
       }}
@@ -145,31 +144,19 @@ function DraggableWrapper({
       onMouseLeave={onMouseLeave}
     >
       {isEditMode && draggable && !collapsed && (
-        <div
-          style={{
-            position: "absolute",
-            top: -3,
-            left: -3,
-            width: "24px",
-            height: "24px",
-            cursor: "pointer",
-            background: "#dc3545",
-            color: "white",
-            borderRadius: "50%",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: "16px",
-            fontWeight: "bold",
-            zIndex: 1000,
-            boxShadow: "0 2px 4px rgba(0,0,0,0.2)",
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete?.();
-          }}
-        >
-          ×
+        <div className="delete-button-container">
+          <button
+            onMouseDown={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete?.();
+            }}
+          >
+            -
+          </button>
         </div>
       )}
 
@@ -179,14 +166,15 @@ function DraggableWrapper({
         <div
           style={{
             position: "absolute",
-            bottom: -3,
-            right: -3,
+            bottom: -2,
+            right: -2,
             width: "16px",
             height: "16px",
             cursor: "nwse-resize",
-            borderRight: "6px solid grey",
-            borderBottom: "6px solid grey",
-            borderRadius: "3px",
+            borderRight: "6px solid rgba(255, 255, 255, 0.69)",
+            borderBottom: "6px solid rgba(255, 255, 255, 0.69)",
+            borderRadius: "4px",
+            zIndex: 1,
           }}
           onMouseDown={handleResizeStart}
         />

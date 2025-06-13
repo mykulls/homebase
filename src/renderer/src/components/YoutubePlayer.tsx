@@ -1,17 +1,23 @@
 import React, { useState, useRef, useEffect, FormEvent } from "react";
+import "./YoutubePlayer.css";
 
 interface YoutubePlayerProps {
+  defaultDim: { height: number; width: number };
   audioOnly?: boolean;
 }
 
-function YoutubePlayer({ audioOnly = false }: YoutubePlayerProps) {
+function YoutubePlayer({ defaultDim, audioOnly = false }: YoutubePlayerProps) {
+  const [isPlaying, setPlaying] = useState(false);
   const [videoId, setVideoId] = useState<string>("");
   const [input, setInput] = useState<string>("");
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [volume, setVolume] = useState(100);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const ytPlayer = useRef<YT.Player | null>(null);
 
-  const DEFAULT_WIDTH = 384;
-  const DEFAULT_HEIGHT = 216;
+  const { height, width } = defaultDim;
+  const DEFAULT_WIDTH = Math.min(width - 40, ((height - 80) * 16) / 9);
+  const DEFAULT_HEIGHT = DEFAULT_WIDTH * 0.5625; // 16:9
 
   useEffect(() => {
     if (!window.YT) {
@@ -55,7 +61,14 @@ function YoutubePlayer({ audioOnly = false }: YoutubePlayerProps) {
           autohide: 1, // Hide controls after a few seconds
         },
         events: {
-          onReady: () => console.log("Player ready"),
+          onReady: () => {
+            // console.log("Player ready");
+          },
+          onStateChange: (event) => {
+            if (event.data === window.YT.PlayerState.PLAYING) {
+              setIsInitialized(true);
+            }
+          },
         },
       });
     }
@@ -71,6 +84,7 @@ function YoutubePlayer({ audioOnly = false }: YoutubePlayerProps) {
     } else {
       player.playVideo();
     }
+    setPlaying(!isPlaying);
   };
 
   const skip = (seconds: number) => {
@@ -81,19 +95,53 @@ function YoutubePlayer({ audioOnly = false }: YoutubePlayerProps) {
     }
   };
 
+  const handleVolumeChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const newVolume = parseInt(event.target.value, 10);
+    setVolume(newVolume);
+    if (ytPlayer.current) {
+      ytPlayer.current.setVolume(newVolume);
+    }
+  };
+
+  const Controls = () => (
+    <>
+      <div className="button-container">
+        <button onClick={() => skip(-10)} style={{ padding: "8px 12px" }}>
+          <i className="bi bi-skip-start"></i> 10
+        </button>
+      </div>
+      <div className="button-container">
+        <button onClick={handlePlayPause} style={{ padding: "8px 12px" }}>
+          {isPlaying ? <i className="bi bi-pause-fill"></i> : <i className="bi bi-play"></i>}
+        </button>
+      </div>
+      <div className="button-container">
+        <button onClick={() => skip(10)} style={{ padding: "8px 12px" }}>
+          <i className="bi bi-skip-end"></i> 10
+        </button>
+      </div>
+    </>
+  );
+
   return (
-    <div style={{ padding: "16px", maxWidth: "600px", margin: "0 auto" }}>
-      <form onSubmit={handleSubmit} style={{ marginBottom: "16px", display: "flex", gap: "8px" }}>
+    <div className="container">
+      <form
+        className="youtube-link"
+        onSubmit={handleSubmit}
+        style={{ marginBottom: "8px", display: "flex", gap: "8px" }}
+      >
         <input
           type="text"
           placeholder="Paste YouTube link"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          style={{ flex: 1, padding: "8px", zIndex: 1 }}
+          style={{ flex: 1, padding: "0 8px", zIndex: 1, fontSize: videoId ? 10 : 16, height: videoId ? 20 : 34 }}
         />
-        <button type="submit" style={{ padding: "8px 16px" }}>
-          Load
-        </button>
+        <div className="button-container" style={{ height: videoId ? 20 : 32 }}>
+          <button type="submit" style={{ padding: "0 16px", fontSize: videoId ? 10 : 14 }}>
+            Load
+          </button>
+        </div>
       </form>
 
       {videoId && (
@@ -105,9 +153,8 @@ function YoutubePlayer({ audioOnly = false }: YoutubePlayerProps) {
               position: "relative",
               width: `${DEFAULT_WIDTH}px`,
               height: `${DEFAULT_HEIGHT}px`,
-              marginBottom: "16px",
-              border: "1px solid #ccc",
-              borderRadius: "4px",
+              border: "1px solid #eee",
+              borderRadius: "8px",
               overflow: "hidden",
             }}
           >
@@ -115,19 +162,25 @@ function YoutubePlayer({ audioOnly = false }: YoutubePlayerProps) {
               ref={playerContainerRef}
               id="yt-player"
               style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}
-            ></div>
+            />
+            {!audioOnly && isInitialized && (
+              <div className="video-controls-overlay">
+                <Controls />
+              </div>
+            )}
           </div>
 
-          <div style={{ display: "flex", gap: "12px", justifyContent: "center" }}>
-            <button onClick={handlePlayPause} style={{ padding: "8px 12px" }}>
-              Play / Pause
-            </button>
-            <button onClick={() => skip(-10)} style={{ padding: "8px 12px" }}>
-              ⏪ -10s
-            </button>
-            <button onClick={() => skip(10)} style={{ padding: "8px 12px" }}>
-              ⏩ +10s
-            </button>
+          {audioOnly && (
+            <div className="audio-controls">
+              <Controls />
+            </div>
+          )}
+          <div className="volume-control">
+            <div className="volume-control-wrapper">
+              <i className="bi bi-volume-up"></i>
+              <input type="range" min="0" max="100" value={volume} onChange={handleVolumeChange} />
+              <span>{volume}</span>
+            </div>
           </div>
         </>
       )}
